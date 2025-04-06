@@ -1,0 +1,8 @@
+@use '../../variable.scss' as *;
+
+.left-panel {
+    position: relative;
+    width: 285px;
+    height: 100%;
+    background-color: $panel-color;
+}

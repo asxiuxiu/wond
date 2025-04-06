@@ -1,0 +1,15 @@
+// Theme variables
+:root {
+    // Default theme (light)
+    --panel-color: #ffffff;
+    --font-color: #000000;
+}
+
+[data-theme='dark'] {
+    --panel-color: #2c2c2c;
+    --font-color: #ffffff;
+}
+
+// SCSS variables for easier usage
+$panel-color: var(--panel-color);
+$font-color: var(--font-color); 
