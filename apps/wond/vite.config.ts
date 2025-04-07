@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
-import * as sass from 'sass'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import * as sass from 'sass';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@wond/core': resolve(__dirname, '../../packages/core/src'),
     },
   },
   css: {
@@ -41,4 +42,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

@@ -1,0 +1,22 @@
+{
+  "name": "@wond/core",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "node ../../scripts/dev.js core",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "rimraf": "^5.0.5",
+    "@types/node": "^22.14.0"
+  }
+}

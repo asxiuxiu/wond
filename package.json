@@ -4,12 +4,28 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "pnpm -r dev",
+    "dev": "run-p dev:core dev:wond",
+    "dev:core": "pnpm --filter @wond/core dev",
+    "dev:wond": "pnpm --filter @wond/wond dev",
     "lint": "pnpm -r lint",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
   "engines": {
     "node": ">=16",
     "pnpm": ">=8"
+  },
+  "devDependencies": {
+    "@jgoz/esbuild-plugin-typecheck": "^4.0.3",
+    "@types/minimist": "^1.2.5",
+    "esbuild": "^0.25.2",
+    "esbuild-sass-plugin": "^3.3.1",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.6",
+    "minimist": "^1.2.8",
+    "npm-run-all": "^4.1.5",
+    "picocolors": "^1.1.1",
+    "prettier": "^3.5.3"
   }
 }

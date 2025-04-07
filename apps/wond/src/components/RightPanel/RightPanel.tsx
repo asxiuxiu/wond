@@ -1,7 +1,7 @@
-import './RightPanel.scss'
+import './RightPanel.scss';
 
 const RightPanel = () => {
-    return <div className="right-panel">RightPanel</div>
-}
+  return <div className="right-panel">RightPanel</div>;
+};
 
-export default RightPanel
+export default RightPanel;

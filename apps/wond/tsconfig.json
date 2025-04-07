@@ -23,7 +23,8 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@wond/core": ["../../packages/core/src"]
     }
   },
   "include": ["src"],
