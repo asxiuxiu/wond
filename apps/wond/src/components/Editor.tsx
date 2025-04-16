@@ -1,19 +1,34 @@
 import './Editor.scss';
 import LeftPanel from './LeftPanel/LeftPanel';
 import RightPanel from './RightPanel/RightPanel';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { WondEditor } from '@wond/core';
 
+// Extend Window interface
+declare global {
+  interface Window {
+    editor: WondEditor;
+  }
+}
+
 const Editor: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const editor = new WondEditor();
-    console.log(editor);
-  }, []);
+    const containerEl = containerRef.current;
+    if (!containerEl) return;
+
+    const editor = new WondEditor({
+      container: containerEl,
+    });
+
+    window.editor = editor;
+  }, [containerRef]);
 
   return (
     <div className="wond-editor">
       <LeftPanel />
-      <div className="paint"></div>
+      <div className="canvas-container" ref={containerRef}></div>
       <RightPanel />
     </div>
   );
