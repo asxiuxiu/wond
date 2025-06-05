@@ -1,18 +1,31 @@
+import { HostEventManager } from './host_event_manager';
+import { SceneGraph } from './scene_graph';
+import { ToolManager } from './tool_manager';
 interface WondEditorOptions {
-    container: HTMLElement;
+  container: HTMLElement;
 }
 
-
 export class WondEditor {
-    constructor(options: WondEditorOptions) {
-        // init canvas element
-        const canvasWrapper = options.container;
-        const boundingBox = canvasWrapper.getBoundingClientRect();
-        const canvasElement = document.createElement('canvas');
-        canvasElement.width = boundingBox.width;
-        canvasElement.height = boundingBox.height;
-        canvasWrapper.appendChild(canvasElement);
+  canvasRootElement: HTMLCanvasElement;
 
-        const ctx = canvasElement.getContext('2d');
-    }
+  hostEventManager: HostEventManager;
+  toolManager: ToolManager;
+  sceneGraph: SceneGraph;
+
+  constructor(options: WondEditorOptions) {
+    // init canvas element
+    const canvasWrapper = options.container;
+    const boundingBox = canvasWrapper.getBoundingClientRect();
+    const canvasElement = document.createElement('canvas');
+    canvasElement.width = boundingBox.width;
+    canvasElement.height = boundingBox.height;
+    canvasWrapper.appendChild(canvasElement);
+
+    this.canvasRootElement = canvasElement;
+
+    this.hostEventManager = new HostEventManager(canvasElement);
+    this.toolManager = new ToolManager();
+
+    this.sceneGraph = new SceneGraph();
+  }
 }
