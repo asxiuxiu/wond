@@ -27,5 +27,15 @@ export class WondEditor {
     this.toolManager = new ToolManager();
 
     this.sceneGraph = new SceneGraph();
+
+    this.initBindings();
+  }
+
+  initBindings() {
+    // hostEventManager => toolManager
+    this.hostEventManager.on('start', this.toolManager.onStart);
+    this.hostEventManager.on('move', this.toolManager.onMove);
+    this.hostEventManager.on('end', this.toolManager.onEnd);
+    this.hostEventManager.on('drag', this.toolManager.onDrag);
   }
 }

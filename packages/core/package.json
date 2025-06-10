@@ -2,9 +2,9 @@
   "name": "@wond/core",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/index.js",
-  "module": "dist/index.es.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/core.es.js",
+  "module": "dist/core.es.js",
+  "types": "dist/core.d.ts",
   "files": [
     "dist"
   ],
@@ -12,6 +12,9 @@
     "build": "tsc && vite build",
     "dev": "node ../../scripts/dev.js core",
     "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@wond/common": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

@@ -1,4 +1,5 @@
-import { EventEmitter } from './event_emitter';
+import { EventEmitter } from '@wond/common';
+
 export interface IMouseEvent {
   altKey: boolean;
   ctrlKey: boolean;

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "run-p dev:core dev:wond",
+    "dev": "run-p dev:common dev:core dev:wond",
+    "dev:common": "pnpm --filter @wond/common dev",
     "dev:core": "pnpm --filter @wond/core dev",
     "dev:wond": "pnpm --filter @wond/wond dev",
     "lint": "pnpm -r lint",

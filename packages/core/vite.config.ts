@@ -5,13 +5,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'WondCore',
+      name: 'core',
       fileName: (format) => `index.${format}.js`,
-    }
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
     },
   },
 });
