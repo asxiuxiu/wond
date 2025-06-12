@@ -23,4 +23,8 @@ export class EventEmitter<T extends Record<symbol | string, any>> {
   clear(event: keyof T) {
     this.eventListenerMap.delete(event);
   }
+
+  clearAll() {
+    this.eventListenerMap.clear();
+  }
 }

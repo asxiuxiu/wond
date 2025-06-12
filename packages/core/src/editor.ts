@@ -1,6 +1,9 @@
+import { viewSpaceManager } from './view_space_manager';
+import { CommandManager } from './command_manager';
 import { HostEventManager } from './host_event_manager';
 import { SceneGraph } from './scene_graph';
 import { ToolManager } from './tool_manager';
+
 interface WondEditorOptions {
   container: HTMLElement;
 }
@@ -11,6 +14,8 @@ export class WondEditor {
   hostEventManager: HostEventManager;
   toolManager: ToolManager;
   sceneGraph: SceneGraph;
+  commandManager: CommandManager;
+  viewSpaceManager: viewSpaceManager;
 
   constructor(options: WondEditorOptions) {
     // init canvas element
@@ -20,13 +25,15 @@ export class WondEditor {
     canvasElement.width = boundingBox.width;
     canvasElement.height = boundingBox.height;
     canvasWrapper.appendChild(canvasElement);
-
     this.canvasRootElement = canvasElement;
+
+    this.viewSpaceManager = new viewSpaceManager(canvasElement);
 
     this.hostEventManager = new HostEventManager(canvasElement);
     this.toolManager = new ToolManager();
 
     this.sceneGraph = new SceneGraph();
+    this.commandManager = new CommandManager(this.sceneGraph);
 
     this.initBindings();
   }

@@ -1,17 +1,13 @@
-import { WondDocument } from './graphics/document';
-import { WondGraphics } from './graphics/graphics';
+import { WondGraphics } from '@/graphics/graphics';
+import { WondOperation } from './operation_base';
+import { WondDocument } from '@/graphics/document';
+import { SceneGraph } from '@/scene_graph';
 
-export class WondOperation {
-  execute = (rootNode: WondDocument) => {};
-  undo = (rootNode: WondDocument) => {};
-}
-
-export class WondAddOperation extends WondOperation {
+export class WondAddNodeOperation implements WondOperation {
   coordinates: number[];
   newNode: WondGraphics;
 
   constructor(coordinates: number[], newNode: WondGraphics) {
-    super();
     if (coordinates.length === 0) {
       console.warn(
         '[WondAddOperation:constructor] coordinates length is 0, this operation will be invalid',
@@ -44,8 +40,10 @@ export class WondAddOperation extends WondOperation {
     return currentDepthNode;
   };
 
-  execute = (rootNode: WondDocument) => {
-    const targetCoordinatesParentNode = this.getCoordinatesParentNode(rootNode);
+  execute = (sceneGraph: SceneGraph) => {
+    const targetCoordinatesParentNode = this.getCoordinatesParentNode(
+      sceneGraph.getRootNode(),
+    );
     if (!targetCoordinatesParentNode) {
       return;
     }
@@ -59,8 +57,10 @@ export class WondAddOperation extends WondOperation {
     }
   };
 
-  undo = (rootNode: WondDocument) => {
-    const targetCoordinatesParentNode = this.getCoordinatesParentNode(rootNode);
+  undo = (sceneGraph: SceneGraph) => {
+    const targetCoordinatesParentNode = this.getCoordinatesParentNode(
+      sceneGraph.getRootNode(),
+    );
     if (!targetCoordinatesParentNode) {
       return;
     }
@@ -72,9 +72,4 @@ export class WondAddOperation extends WondOperation {
         );
     }
   };
-}
-
-export class WondCommand {
-  public execute = () => {};
-  public undo = () => {};
 }

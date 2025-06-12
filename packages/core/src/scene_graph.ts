@@ -1,7 +1,7 @@
 import { WondDocument } from './graphics/document';
 
 export class SceneGraph {
-  rootNode: WondDocument;
+  private rootNode: WondDocument;
 
   constructor() {
     this.rootNode = new WondDocument({
@@ -9,5 +9,9 @@ export class SceneGraph {
       visible: true,
       children: [],
     });
+  }
+
+  getRootNode() {
+    return this.rootNode;
   }
 }
