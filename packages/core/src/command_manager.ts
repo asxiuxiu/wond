@@ -1,5 +1,4 @@
 import { EventEmitter } from '@wond/common';
-import { WondDocument } from './graphics/document';
 import { WondOperation } from './operations/operation_base';
 import { SceneGraph } from './scene_graph';
 
@@ -20,6 +19,7 @@ export class WondCommand {
     for (let i = 0; i < this.operations.length; i++) {
       const operation = this.operations[i];
       operation.execute(sceneGraph);
+      sceneGraph.markDirtyArea(operation.getDirtyBoundingArea());
     }
   };
 
@@ -27,6 +27,7 @@ export class WondCommand {
     for (let i = this.operations.length - 1; i >= 0; i--) {
       const operation = this.operations[i];
       operation.undo(sceneGraph);
+      sceneGraph.markDirtyArea(operation.getDirtyBoundingArea());
     }
   };
 
@@ -41,10 +42,7 @@ export class WondCommand {
     this.eventEmitter.emit('changeEnd', this);
   };
 
-  on = (
-    event: keyof WondCommandPhaseEvent,
-    callback: WondCommandPhaseEvent[keyof WondCommandPhaseEvent],
-  ) => {
+  on = (event: keyof WondCommandPhaseEvent, callback: WondCommandPhaseEvent[keyof WondCommandPhaseEvent]) => {
     this.eventEmitter.on(event, callback);
   };
 }
@@ -62,9 +60,7 @@ export class CommandManager {
 
   public executeCommand = (command: WondCommand) => {
     if (this.activeCommand !== null) {
-      console.warn(
-        '[CommandManager:executeCommand] the previous activeCommand is not complete.',
-      );
+      console.warn('[CommandManager:executeCommand] the previous activeCommand is not complete.');
       this.activeCommand.complete();
     }
 

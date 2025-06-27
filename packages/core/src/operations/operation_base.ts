@@ -1,4 +1,5 @@
-import { SceneGraph } from '@/scene_graph';
+import { BoundingArea } from 'src/types';
+import { SceneGraph } from '../scene_graph';
 
 /**
  * Operation is an atomic operation
@@ -6,4 +7,6 @@ import { SceneGraph } from '@/scene_graph';
 export interface WondOperation {
   execute(sceneGraph: SceneGraph): void;
   undo(sceneGraph: SceneGraph): void;
+
+  getDirtyBoundingArea(): BoundingArea;
 }

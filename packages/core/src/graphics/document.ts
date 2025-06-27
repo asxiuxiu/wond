@@ -1,13 +1,24 @@
-import { GraphicsAttrs, GraphicsType, WondGraphics } from './graphics';
+import type { WondColor } from '../types';
+import { GraphicsType, WondGraphics } from './graphics';
+import { Canvas, CanvasKit, Surface } from 'canvaskit-wasm';
 
-type WondDocumentAttrs = GraphicsAttrs;
+export class WondDocument extends WondGraphics {
+  type: GraphicsType = GraphicsType.Document;
+  backgroundColor: WondColor;
+  children: WondGraphics[];
 
-export class WondDocument extends WondGraphics<WondDocumentAttrs> {
-  constructor(attrs: Omit<WondDocumentAttrs, 'id' | 'transform' | 'type'>) {
-    super({
-      ...attrs,
-      type: GraphicsType.Document,
-      transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+  constructor(attrs: Partial<Omit<WondDocument, 'id' | 'type'>>) {
+    super(attrs);
+    this.backgroundColor = attrs.backgroundColor || { r: 200, g: 15, b: 255, a: 1 };
+    this.children = attrs.children || [];
+  }
+
+  public draw(canvasKit: CanvasKit, surface: Surface): void {
+    surface.drawOnce((canvas: Canvas) => {
+      canvas.drawColor(
+        canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a),
+        canvasKit.BlendMode.Src,
+      );
     });
   }
 }
