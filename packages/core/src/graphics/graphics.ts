@@ -1,6 +1,6 @@
 import { getUuid } from '@wond/common';
-import { CanvasKit, Surface } from 'canvaskit-wasm';
-import { BoundingArea } from '../types';
+import { type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type BoundingArea } from '../types';
 import { ZERO_BOUNDING_AREA } from '../constants';
 /**
  * | a | c | tx|
@@ -16,12 +16,14 @@ export interface I2dMatrix {
   f: number; // vertical translation
 }
 
-export enum GraphicsType {
-  Document = 'document',
-  Graph = 'graph',
-  Rectangle = 'rectangle',
-  Vector = 'vector',
-}
+export const GraphicsType = {
+  Document: 'document',
+  Graph: 'graph',
+  Rectangle: 'rectangle',
+  Vector: 'vector',
+} as const;
+
+export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
 
 export class WondGraphics {
   id: string;
@@ -40,5 +42,5 @@ export class WondGraphics {
     return ZERO_BOUNDING_AREA;
   }
 
-  public draw(canvasKit: CanvasKit, surface: Surface) {}
+  public draw(canvasKit: CanvasKit, surface: Surface) { }
 }

@@ -1,5 +1,5 @@
 import { EventEmitter } from '@wond/common';
-import { WondOperation } from './operations/operation_base';
+import { type WondOperation } from './operations/operation_base';
 import { SceneGraph } from './scene_graph';
 
 interface WondCommandPhaseEvent {

@@ -6,18 +6,16 @@ import * as sass from 'sass';
 // https://vitejs.dev/config/
 export default defineConfig((env) => {
   const isProduction = env.mode === 'production';
-  console.log('licheng11111 isProduction', isProduction);
   return {
     plugins: [react()],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
         '@wond/core': isProduction
-          ? resolve(__dirname, '../../packages/core/dist')
-          : resolve(__dirname, '../../packages/core/src'),
+          ? resolve(__dirname, '../../packages/core/dist/index.es.js')
+          : resolve(__dirname, '../../packages/core/src/index.ts'),
       },
-    },
-    css: {
+    }, css: {
       preprocessorOptions: {
         scss: {
           api: 'modern-compiler',
@@ -34,18 +32,7 @@ export default defineConfig((env) => {
       host: true,
     },
     build: {
-      target: 'es2015',
-      outDir: 'dist',
-      sourcemap: true,
-      minify: 'terser',
-      cssCodeSplit: true,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-          },
-        },
-      },
-    },
+    }
   };
+
 });

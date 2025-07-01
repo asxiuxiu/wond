@@ -1,4 +1,4 @@
-import { BoundingArea } from '../types';
+import type { BoundingArea } from '../types';
 import { SceneGraph } from '../scene_graph';
 
 /**

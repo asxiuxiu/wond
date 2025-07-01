@@ -1,5 +1,5 @@
-import { CanvasKit, Surface } from 'canvaskit-wasm';
-import { BoundingArea } from '../types';
+import { type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type BoundingArea } from '../types';
 import { GraphicsType, WondGraphics } from './graphics';
 
 export class WondRect extends WondGraphics {
@@ -20,5 +20,5 @@ export class WondRect extends WondGraphics {
     };
   }
 
-  public draw(canvasKit: CanvasKit, surface: Surface): void {}
+  public draw(canvasKit: CanvasKit, surface: Surface): void { }
 }

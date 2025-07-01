@@ -1,4 +1,4 @@
-import { IPoint } from './types';
+import type { IPoint } from './types';
 
 interface ViewSpaceMeta {
   viewportOffsetX: number;
@@ -9,6 +9,8 @@ interface ViewSpaceMeta {
 }
 
 export class CoordinateManager {
+  private canvasElement: HTMLCanvasElement
+
   private viewportMeta: ViewSpaceMeta = {
     viewportOffsetX: 0,
     viewportOffsetY: 0,
@@ -17,7 +19,8 @@ export class CoordinateManager {
     zoom: 1,
   };
 
-  constructor(private canvasElement: HTMLCanvasElement) {
+  constructor(canvasElement: HTMLCanvasElement) {
+    this.canvasElement = canvasElement;
     this.initViewportMeta();
   }
 

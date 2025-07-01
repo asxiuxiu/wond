@@ -3,12 +3,14 @@ import { CommandManager } from './command_manager';
 import { HostEventManager } from './host_event_manager';
 import { SceneGraph } from './scene_graph';
 import { ToolManager } from './tool_manager';
+import type { IWondEditor } from './types';
 
 export interface WondEditorOptions {
   container: HTMLDivElement;
 }
 
-export class WondEditor {
+
+export class WondEditor implements IWondEditor {
   canvasRootElement: HTMLCanvasElement;
 
   hostEventManager: HostEventManager;

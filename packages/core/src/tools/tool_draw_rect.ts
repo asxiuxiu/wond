@@ -1,9 +1,8 @@
-import { WondEditor } from '../editor';
-import { IBaseTool } from './tool_base';
+import { type IBaseTool } from './tool_base';
 import { WondCommand } from '../command_manager';
 import { WondRect } from '../graphics/rect';
-import { IMouseEvent } from '../host_event_manager';
-import { IPoint } from '../types';
+import { type IMouseEvent } from '../host_event_manager';
+import { type IPoint, type IWondEditor } from '../types';
 import { WondAddNodeOperation } from '../operations/add_node_operation';
 
 export class ToolDrawRect implements IBaseTool {
@@ -11,10 +10,10 @@ export class ToolDrawRect implements IBaseTool {
   private endPoint: IPoint | null = null;
   private command: WondCommand | null = null;
 
-  onStart = (event: IMouseEvent, editor: WondEditor) => {
+  onStart = (event: IMouseEvent, editor: IWondEditor) => {
     this.startPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
   };
-  onDrag = (event: IMouseEvent, editor: WondEditor) => {
+  onDrag = (event: IMouseEvent, editor: IWondEditor) => {
     if (!this.startPoint) return;
     this.endPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
     // calculate the rect by the bounding box. can be other shape
@@ -32,10 +31,10 @@ export class ToolDrawRect implements IBaseTool {
     const newAddRectOperation = new WondAddNodeOperation([0], newRect);
     this.command.setOperations([newAddRectOperation]);
   };
-  onMove = (event: IMouseEvent, editor: WondEditor) => {
+  onMove = (event: IMouseEvent, editor: IWondEditor) => {
     // do nothing.
   };
-  onEnd = (event: IMouseEvent, editor: WondEditor) => {
+  onEnd = (event: IMouseEvent, editor: IWondEditor) => {
     if (this.command) {
       this.command.complete();
       this.command = null;

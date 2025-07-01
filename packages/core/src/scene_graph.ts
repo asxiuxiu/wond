@@ -1,6 +1,6 @@
-import CanvasKitInit, { CanvasKit, Surface } from 'canvaskit-wasm';
+import CanvasKitInit, { type CanvasKit, type Surface } from 'canvaskit-wasm';
 import { WondDocument } from './graphics/document';
-import { BoundingArea } from './types';
+import type { BoundingArea } from './types';
 import { ZERO_BOUNDING_AREA } from './constants';
 
 export class SceneGraph {

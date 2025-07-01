@@ -3,7 +3,11 @@
     "target": "ESNEXT",
     "module": "ESNext",
     "esModuleInterop": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -13,9 +17,16 @@
     "baseUrl": ".",
     "strict": true,
     "noUnusedParameters": false,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
     "paths": {
-      "@wond/*": ["./packages/*/src"]
+      "@wond/*": [
+        "./packages/*/src"
+      ]
     }
   },
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

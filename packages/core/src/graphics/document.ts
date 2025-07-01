@@ -1,6 +1,6 @@
+import { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
 import type { WondColor } from '../types';
 import { GraphicsType, WondGraphics } from './graphics';
-import { Canvas, CanvasKit, Surface } from 'canvaskit-wasm';
 
 export class WondDocument extends WondGraphics {
   type: GraphicsType = GraphicsType.Document;
