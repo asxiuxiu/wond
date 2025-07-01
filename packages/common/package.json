@@ -2,25 +2,18 @@
   "name": "@wond/common",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/common.es.js",
-  "module": "dist/common.es.js",
-  "types": "dist/common.d.ts",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc && vite build",
-    "dev": "node ../../scripts/dev.js common",
+    "build": "rollup -c --configPlugin typescript",
+    "dev": "rollup -c --configPlugin typescript -w",
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@wond/common": "workspace:*",
     "uuid": "^11.1.0"
   },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8"
-  }
+  "devDependencies": {}
 }

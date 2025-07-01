@@ -2,25 +2,19 @@
   "name": "@wond/core",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/core.es.js",
-  "module": "dist/core.es.js",
-  "types": "dist/core.d.ts",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc && vite build",
-    "dev": "node ../../scripts/dev.js core",
+    "build": "rollup -c --configPlugin typescript",
+    "dev": "rollup -c --configPlugin typescript -w",
     "clean": "rimraf dist"
   },
   "dependencies": {
     "@wond/common": "workspace:*",
     "canvaskit-wasm": "^0.40.0"
   },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8"
-  }
+  "devDependencies": {}
 }

@@ -2,7 +2,7 @@ import { WondGraphics } from '../graphics/graphics';
 import { WondOperation } from './operation_base';
 import { WondDocument } from '../graphics/document';
 import { SceneGraph } from '../scene_graph';
-import { BoundingArea } from 'src/types';
+import { BoundingArea } from '../types';
 
 export class WondAddNodeOperation implements WondOperation {
   coordinates: number[];

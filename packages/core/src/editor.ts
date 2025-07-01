@@ -4,8 +4,8 @@ import { HostEventManager } from './host_event_manager';
 import { SceneGraph } from './scene_graph';
 import { ToolManager } from './tool_manager';
 
-interface WondEditorOptions {
-  container: HTMLElement;
+export interface WondEditorOptions {
+  container: HTMLDivElement;
 }
 
 export class WondEditor {

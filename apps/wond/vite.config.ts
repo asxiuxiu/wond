@@ -4,42 +4,48 @@ import { resolve } from 'path';
 import * as sass from 'sass';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-      '@wond/core': resolve(__dirname, '../../packages/core/src'),
+export default defineConfig((env) => {
+  const isProduction = env.mode === 'production';
+  console.log('licheng11111 isProduction', isProduction);
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, './src'),
+        '@wond/core': isProduction
+          ? resolve(__dirname, '../../packages/core/dist')
+          : resolve(__dirname, '../../packages/core/src'),
+      },
     },
-  },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: 'modern-compiler',
-        additionalData: `@use "sass:math"; @use "sass:color";`,
-        implementation: sass,
-        sassOptions: {
-          outputStyle: 'expanded',
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler',
+          additionalData: `@use "sass:math"; @use "sass:color";`,
+          implementation: sass,
+          sassOptions: {
+            outputStyle: 'expanded',
+          },
         },
       },
     },
-  },
-  server: {
-    port: 3000,
-    host: true,
-  },
-  build: {
-    target: 'es2015',
-    outDir: 'dist',
-    sourcemap: true,
-    minify: 'terser',
-    cssCodeSplit: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
+    server: {
+      port: 3000,
+      host: true,
+    },
+    build: {
+      target: 'es2015',
+      outDir: 'dist',
+      sourcemap: true,
+      minify: 'terser',
+      cssCodeSplit: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+          },
         },
       },
     },
-  },
+  };
 });

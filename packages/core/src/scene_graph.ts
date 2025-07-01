@@ -23,7 +23,7 @@ export class SceneGraph {
 
   private initCanvasKit(canvasElement: HTMLCanvasElement) {
     CanvasKitInit({
-      locateFile: (file) => '/node_modules/canvaskit-wasm/bin/canvaskit-wasm.js',
+      locateFile: (file) => '/node_modules/canvaskit-wasm/bin/' + file,
     }).then((canvasKit) => {
       this.canvasKit = canvasKit;
       this.paintSurface = this.canvasKit.MakeWebGLCanvasSurface(canvasElement);
