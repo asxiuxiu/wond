@@ -2,12 +2,23 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import * as sass from 'sass';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 // https://vitejs.dev/config/
 export default defineConfig((env) => {
   const isProduction = env.mode === 'production';
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      viteStaticCopy({
+        targets: [
+          {
+            src: '../../packages/core/dist/canvaskit.wasm',
+            dest: '.',
+          },
+        ],
+      }),
+    ],
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
@@ -15,7 +26,8 @@ export default defineConfig((env) => {
           ? resolve(__dirname, '../../packages/core/dist/index.es.js')
           : resolve(__dirname, '../../packages/core/src/index.ts'),
       },
-    }, css: {
+    },
+    css: {
       preprocessorOptions: {
         scss: {
           api: 'modern-compiler',
@@ -31,8 +43,6 @@ export default defineConfig((env) => {
       port: 3000,
       host: true,
     },
-    build: {
-    }
+    build: {},
   };
-
 });

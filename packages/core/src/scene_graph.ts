@@ -22,9 +22,7 @@ export class SceneGraph {
   }
 
   private initCanvasKit(canvasElement: HTMLCanvasElement) {
-    CanvasKitInit({
-      locateFile: (file) => '/node_modules/canvaskit-wasm/bin/' + file,
-    }).then((canvasKit) => {
+    CanvasKitInit().then((canvasKit) => {
       this.canvasKit = canvasKit;
       this.paintSurface = this.canvasKit.MakeWebGLCanvasSurface(canvasElement);
     });
@@ -55,14 +53,17 @@ export class SceneGraph {
         for (const child of this.rootNode.children) {
           child.draw(this.canvasKit, this.paintSurface);
         }
+
+        this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
       } else {
         if (this.dirtyBoundingArea !== null && this.dirtyBoundingArea !== ZERO_BOUNDING_AREA) {
           // calculate the intersection of the dirty bounding area and the scene
           // draw the intersection
-          this.rootNode.draw(this.canvasKit, this.paintSurface);
+          // this.rootNode.draw(this.canvasKit, this.paintSurface);
+
+          // clear the dirty bounding area
+          this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
         }
-        // clear the dirty bounding area
-        this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
       }
     }
 

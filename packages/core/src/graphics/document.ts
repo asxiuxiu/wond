@@ -9,7 +9,7 @@ export class WondDocument extends WondGraphics {
 
   constructor(attrs: Partial<Omit<WondDocument, 'id' | 'type'>>) {
     super(attrs);
-    this.backgroundColor = attrs.backgroundColor || { r: 200, g: 15, b: 255, a: 1 };
+    this.backgroundColor = attrs.backgroundColor || { r: 255, g: 255, b: 255, a: 1 };
     this.children = attrs.children || [];
   }
 

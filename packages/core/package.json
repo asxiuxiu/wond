@@ -10,11 +10,14 @@
   "scripts": {
     "build": "rollup -c --configPlugin typescript",
     "dev": "rollup -c --configPlugin typescript -w",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "clean-deps": "rm -rf node_modules"
   },
   "dependencies": {
     "@wond/common": "workspace:*",
     "canvaskit-wasm": "^0.40.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "rollup-plugin-copy": "^3.5.0"
+  }
 }

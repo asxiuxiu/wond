@@ -11,7 +11,8 @@
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "clean-deps": "rm -rf node_modules && pnpm -r clean-deps"
   },
   "engines": {
     "node": ">=16",

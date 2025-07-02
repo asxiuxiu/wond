@@ -1,13 +1,13 @@
+import type { WondEditor } from './editor';
 import { type IMouseEvent } from './host_event_manager';
 import { type IBaseTool } from './tools/tool_base';
 import { ToolDrawRect } from './tools/tool_draw_rect';
-import type { IWondEditor } from './types';
 
-export class ToolManager {
+export class WondToolManager {
   private activeTool: IBaseTool | null = new ToolDrawRect();
-  private editor: IWondEditor;
+  private editor: WondEditor;
 
-  constructor(editor: IWondEditor) {
+  constructor(editor: WondEditor) {
     this.editor = editor;
   }
 

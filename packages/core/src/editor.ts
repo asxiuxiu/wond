@@ -2,19 +2,15 @@ import { CoordinateManager } from './coordinate_manager';
 import { CommandManager } from './command_manager';
 import { HostEventManager } from './host_event_manager';
 import { SceneGraph } from './scene_graph';
-import { ToolManager } from './tool_manager';
-import type { IWondEditor } from './types';
 
 export interface WondEditorOptions {
   container: HTMLDivElement;
 }
 
-
-export class WondEditor implements IWondEditor {
+export class WondEditor {
   canvasRootElement: HTMLCanvasElement;
 
   hostEventManager: HostEventManager;
-  toolManager: ToolManager;
   sceneGraph: SceneGraph;
   commandManager: CommandManager;
   coordinateManager: CoordinateManager;
@@ -32,7 +28,6 @@ export class WondEditor implements IWondEditor {
     this.coordinateManager = new CoordinateManager(canvasElement);
 
     this.hostEventManager = new HostEventManager(canvasElement);
-    this.toolManager = new ToolManager(this);
 
     this.sceneGraph = new SceneGraph(canvasElement);
     this.commandManager = new CommandManager(this.sceneGraph);
@@ -42,9 +37,9 @@ export class WondEditor implements IWondEditor {
 
   initBindings() {
     // hostEventManager => toolManager
-    this.hostEventManager.on('start', this.toolManager.onStart);
-    this.hostEventManager.on('move', this.toolManager.onMove);
-    this.hostEventManager.on('end', this.toolManager.onEnd);
-    this.hostEventManager.on('drag', this.toolManager.onDrag);
+    // this.hostEventManager.on('start', this.toolManager.onStart);
+    // this.hostEventManager.on('move', this.toolManager.onMove);
+    // this.hostEventManager.on('end', this.toolManager.onEnd);
+    // this.hostEventManager.on('drag', this.toolManager.onDrag);
   }
 }
