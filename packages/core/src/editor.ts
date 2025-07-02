@@ -2,6 +2,7 @@ import { CoordinateManager } from './coordinate_manager';
 import { CommandManager } from './command_manager';
 import { HostEventManager } from './host_event_manager';
 import { SceneGraph } from './scene_graph';
+import { WondToolManager } from './tool_manager';
 
 export interface WondEditorOptions {
   container: HTMLDivElement;
@@ -14,7 +15,7 @@ export class WondEditor {
   sceneGraph: SceneGraph;
   commandManager: CommandManager;
   coordinateManager: CoordinateManager;
-
+  toolManager: WondToolManager;
   constructor(options: WondEditorOptions) {
     // init canvas element
     const canvasWrapper = options.container;
@@ -31,15 +32,15 @@ export class WondEditor {
 
     this.sceneGraph = new SceneGraph(canvasElement);
     this.commandManager = new CommandManager(this.sceneGraph);
-
+    this.toolManager = new WondToolManager(this);
     this.initBindings();
   }
 
   initBindings() {
     // hostEventManager => toolManager
-    // this.hostEventManager.on('start', this.toolManager.onStart);
-    // this.hostEventManager.on('move', this.toolManager.onMove);
-    // this.hostEventManager.on('end', this.toolManager.onEnd);
-    // this.hostEventManager.on('drag', this.toolManager.onDrag);
+    this.hostEventManager.on('start', this.toolManager.onStart);
+    this.hostEventManager.on('move', this.toolManager.onMove);
+    this.hostEventManager.on('end', this.toolManager.onEnd);
+    this.hostEventManager.on('drag', this.toolManager.onDrag);
   }
 }

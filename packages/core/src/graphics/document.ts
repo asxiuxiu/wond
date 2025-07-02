@@ -13,12 +13,7 @@ export class WondDocument extends WondGraphics {
     this.children = attrs.children || [];
   }
 
-  public draw(canvasKit: CanvasKit, surface: Surface): void {
-    surface.drawOnce((canvas: Canvas) => {
-      canvas.drawColor(
-        canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a),
-        canvasKit.BlendMode.Src,
-      );
-    });
+  public draw(canvasKit: CanvasKit, canvas: Canvas): void {
+    canvas.clear(canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a));
   }
 }

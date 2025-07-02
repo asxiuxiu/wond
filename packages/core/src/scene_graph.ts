@@ -1,4 +1,4 @@
-import CanvasKitInit, { type CanvasKit, type Surface } from 'canvaskit-wasm';
+import CanvasKitInit, { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
 import { WondDocument } from './graphics/document';
 import type { BoundingArea } from './types';
 import { ZERO_BOUNDING_AREA } from './constants';
@@ -17,14 +17,13 @@ export class SceneGraph {
       children: [],
     });
     this.initCanvasKit(paintElement);
-
-    this.rafDraw();
   }
 
   private initCanvasKit(canvasElement: HTMLCanvasElement) {
     CanvasKitInit().then((canvasKit) => {
       this.canvasKit = canvasKit;
       this.paintSurface = this.canvasKit.MakeWebGLCanvasSurface(canvasElement);
+      this.rafDraw();
     });
   }
 
@@ -47,26 +46,38 @@ export class SceneGraph {
 
   private rafDraw() {
     if (this.canvasKit && this.paintSurface) {
-      if (!this.dirtyBoundingArea) {
-        // draw all the scene
-        this.rootNode.draw(this.canvasKit, this.paintSurface);
+
+      const drawFrame = (canvas: Canvas) => {
+        this.rootNode.draw(this.canvasKit!, canvas);
         for (const child of this.rootNode.children) {
-          child.draw(this.canvasKit, this.paintSurface);
+          child.draw(this.canvasKit!, canvas);
         }
 
-        this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
-      } else {
-        if (this.dirtyBoundingArea !== null && this.dirtyBoundingArea !== ZERO_BOUNDING_AREA) {
-          // calculate the intersection of the dirty bounding area and the scene
-          // draw the intersection
-          // this.rootNode.draw(this.canvasKit, this.paintSurface);
-
-          // clear the dirty bounding area
-          this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
-        }
+        this.paintSurface?.requestAnimationFrame(drawFrame);
       }
+
+      this.paintSurface.requestAnimationFrame(drawFrame);
+
     }
 
-    requestAnimationFrame(() => this.rafDraw());
+
+    // if (!this.dirtyBoundingArea) {
+    //   // draw all the scene
+    //   this.rootNode.draw(this.canvasKit, canvas);
+    //   for (const child of this.rootNode.children) {
+    //     child.draw(this.canvasKit, canvas);
+    //   }
+
+    //   this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
+    // } else {
+    //   if (this.dirtyBoundingArea !== null && this.dirtyBoundingArea !== ZERO_BOUNDING_AREA) {
+    //     // calculate the intersection of the dirty bounding area and the scene
+    //     // draw the intersection
+    //     // this.rootNode.draw(this.canvasKit, this.paintSurface);
+
+    //     // clear the dirty bounding area
+    //     this.dirtyBoundingArea = ZERO_BOUNDING_AREA;
+    //   }
+    // }
   }
 }

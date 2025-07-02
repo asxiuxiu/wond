@@ -1,5 +1,5 @@
 import { getUuid } from '@wond/common';
-import { type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
 import { type BoundingArea } from '../types';
 import { ZERO_BOUNDING_AREA } from '../constants';
 /**
@@ -42,5 +42,5 @@ export class WondGraphics {
     return ZERO_BOUNDING_AREA;
   }
 
-  public draw(canvasKit: CanvasKit, surface: Surface) { }
+  public draw(canvasKit: CanvasKit, canvas: Canvas) { }
 }
