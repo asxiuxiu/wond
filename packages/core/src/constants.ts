@@ -1,6 +1,3 @@
-export const ZERO_BOUNDING_AREA = {
-  left: 0,
-  right: 0,
-  top: 0,
-  bottom: 0,
-};
+import { WondBoundingArea } from './geo/bounding_area';
+
+export const ZERO_BOUNDING_AREA = new WondBoundingArea(0, 0, 0, 0);

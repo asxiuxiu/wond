@@ -3,9 +3,8 @@ import { WondCommand } from '../command_manager';
 import { WondRect } from '../graphics/rect';
 import { type IMouseEvent } from '../host_event_manager';
 import { type IPoint } from '../types';
-import { WondAddNodeOperation } from '../operations/add_node_operation';
-import { WondUpdateSelectionOperation } from '../operations/update_selection_operation';
 import type { WondEditor } from '../editor';
+import { WondAddNodeOperation, WondUpdateSelectionOperation } from '../operations';
 
 export class ToolDrawRect implements IBaseTool {
   private startPoint: IPoint | null = null;

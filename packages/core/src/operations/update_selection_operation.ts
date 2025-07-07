@@ -1,8 +1,8 @@
 import { WondGraphics } from '../graphics/graphics';
 import { type WondOperation } from './operation_base';
 import { SceneGraph } from '../scene_graph';
-import type { BoundingArea } from '../types';
 import { ZERO_BOUNDING_AREA } from '../constants';
+import { WondBoundingArea } from '../geo/bounding_area';
 
 export class WondUpdateSelectionOperation implements WondOperation {
   targetSelectionNodes: WondGraphics[] = [];
@@ -23,7 +23,7 @@ export class WondUpdateSelectionOperation implements WondOperation {
     sceneGraph.addSelections(this.originSelectionNodes);
   };
 
-  getDirtyBoundingArea(): BoundingArea {
+  getDirtyBoundingArea(): WondBoundingArea {
     return ZERO_BOUNDING_AREA;
   }
 }

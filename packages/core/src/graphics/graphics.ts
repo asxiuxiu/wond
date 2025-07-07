@@ -1,7 +1,7 @@
 import { getUuid } from '@wond/common';
 import { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
-import { type BoundingArea } from '../types';
 import { ZERO_BOUNDING_AREA } from '../constants';
+import { WondBoundingArea } from '../geo/bounding_area';
 /**
  * | a | c | tx|
  * | b | d | ty|
@@ -38,7 +38,7 @@ export class WondGraphics {
     Object.assign(this, attrs);
   }
 
-  public getBoundingArea(): BoundingArea {
+  public getBoundingArea(): WondBoundingArea {
     return ZERO_BOUNDING_AREA;
   }
 

@@ -2,7 +2,7 @@ import { WondGraphics } from '../graphics/graphics';
 import { type WondOperation } from './operation_base';
 import { WondDocument } from '../graphics/document';
 import { SceneGraph } from '../scene_graph';
-import type { BoundingArea } from '../types';
+import { WondBoundingArea } from '../geo/bounding_area';
 
 export class WondAddNodeOperation implements WondOperation {
   coordinates: number[];
@@ -58,7 +58,7 @@ export class WondAddNodeOperation implements WondOperation {
     }
   };
 
-  getDirtyBoundingArea(): BoundingArea {
+  getDirtyBoundingArea(): WondBoundingArea {
     return this.newNode.getBoundingArea();
   }
 }
