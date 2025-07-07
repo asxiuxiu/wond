@@ -4,6 +4,7 @@ import { WondRect } from '../graphics/rect';
 import { type IMouseEvent } from '../host_event_manager';
 import { type IPoint } from '../types';
 import { WondAddNodeOperation } from '../operations/add_node_operation';
+import { WondUpdateSelectionOperation } from '../operations/update_selection_operation';
 import type { WondEditor } from '../editor';
 
 export class ToolDrawRect implements IBaseTool {
@@ -30,11 +31,16 @@ export class ToolDrawRect implements IBaseTool {
       transform: { a: 1, b: 0, c: 0, d: 1, e: this.startPoint.x, f: this.startPoint.y },
     });
     const newAddRectOperation = new WondAddNodeOperation([0], newRect);
-    this.command.setOperations([newAddRectOperation]);
+
+    const selectionOperation = new WondUpdateSelectionOperation([newRect]);
+
+    this.command.setOperations([newAddRectOperation, selectionOperation]);
   };
+
   onMove = (event: IMouseEvent, editor: WondEditor) => {
     // do nothing.
   };
+
   onEnd = (event: IMouseEvent, editor: WondEditor) => {
     if (this.command) {
       this.command.complete();

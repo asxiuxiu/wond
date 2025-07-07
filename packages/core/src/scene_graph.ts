@@ -2,9 +2,12 @@ import CanvasKitInit, { type Canvas, type CanvasKit, type Surface } from 'canvas
 import { WondDocument } from './graphics/document';
 import type { BoundingArea } from './types';
 import { ZERO_BOUNDING_AREA } from './constants';
+import type { WondGraphics } from './graphics/graphics';
 
 export class SceneGraph {
   private readonly rootNode: WondDocument;
+  private readonly selectedNode: WondGraphics[] = [];
+
   private canvasKit: CanvasKit | null = null;
   private paintSurface: Surface | null = null;
 
@@ -31,7 +34,22 @@ export class SceneGraph {
     return this.rootNode;
   }
 
+  public getSelections() {
+    return [...this.selectedNode];
+  }
+
+  public addSelections(nodes: WondGraphics[]) {
+    this.selectedNode.push(...nodes);
+  }
+
+  public clearSelection() {
+    this.selectedNode.length = 0;
+  }
+
   public markDirtyArea(area: BoundingArea) {
+    if (area === ZERO_BOUNDING_AREA) {
+      return;
+    }
     if (!this.dirtyBoundingArea) {
       this.dirtyBoundingArea = area;
     } else {
@@ -46,7 +64,6 @@ export class SceneGraph {
 
   private rafDraw() {
     if (this.canvasKit && this.paintSurface) {
-
       const drawFrame = (canvas: Canvas) => {
         this.rootNode.draw(this.canvasKit!, canvas);
         for (const child of this.rootNode.children) {
@@ -54,12 +71,10 @@ export class SceneGraph {
         }
 
         this.paintSurface?.requestAnimationFrame(drawFrame);
-      }
+      };
 
       this.paintSurface.requestAnimationFrame(drawFrame);
-
     }
-
 
     // if (!this.dirtyBoundingArea) {
     //   // draw all the scene
