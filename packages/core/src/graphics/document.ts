@@ -9,11 +9,13 @@ export class WondDocument extends WondGraphics {
 
   constructor(attrs: Partial<Omit<WondDocument, 'id' | 'type'>>) {
     super(attrs);
-    this.backgroundColor = attrs.backgroundColor || { r: 255, g: 255, b: 255, a: 1 };
+    this.backgroundColor = attrs.backgroundColor || { r: 245, g: 245, b: 245, a: 1 };
     this.children = attrs.children || [];
   }
 
   public draw(canvasKit: CanvasKit, canvas: Canvas): void {
-    canvas.clear(canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a));
+    canvas.clear(
+      canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a),
+    );
   }
 }

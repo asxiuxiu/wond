@@ -26,8 +26,15 @@ export class ToolDrawRect implements IBaseTool {
     const newRect = new WondRect({
       name: 'rect1',
       visible: true,
-      size: { x: this.endPoint.x - this.startPoint.x, y: this.endPoint.y - this.startPoint.y },
-      transform: { a: 1, b: 0, c: 0, d: 1, e: this.startPoint.x, f: this.startPoint.y },
+      size: { x: Math.abs(this.endPoint.x - this.startPoint.x), y: Math.abs(this.endPoint.y - this.startPoint.y) },
+      transform: {
+        a: 1,
+        b: 0,
+        c: 0,
+        d: 1,
+        e: Math.min(this.startPoint.x, this.endPoint.x),
+        f: Math.min(this.startPoint.y, this.endPoint.y),
+      },
     });
     const newAddRectOperation = new WondAddNodeOperation([0], newRect);
 
