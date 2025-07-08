@@ -1,0 +1,10 @@
+@use '../../variable.scss' as *;
+
+.right-panel {
+  position: relative;
+  width: 285px;
+  height: 100%;
+  // background-color: $panel-color;
+  background-color: #fff;
+  border-left: 1px solid $panel-border-color;
+}

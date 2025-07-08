@@ -3,13 +3,16 @@
   // Default theme (light)
   --panel-color: #ffffff;
   --font-color: #000000;
+  --panel-border-color: #0000001a;
 }
 
 [data-theme='dark'] {
   --panel-color: #2c2c2c;
   --font-color: #ffffff;
+  --panel-border-color: #ffffff1a;
 }
 
 // SCSS variables for easier usage
 $panel-color: var(--panel-color);
 $font-color: var(--font-color);
+$panel-border-color: var(--panel-border-color);

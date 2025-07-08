@@ -1,9 +1,10 @@
-import './LeftPanel.scss';
+import Layers from '../Layers';
+import './index.scss';
 
 const LeftPanel = () => {
   return (
     <div className="left-panel">
-      <div>LeftPanel</div>
+      <Layers />
     </div>
   );
 };

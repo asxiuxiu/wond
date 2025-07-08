@@ -1,4 +1,4 @@
-import './RightPanel.scss';
+import './index.scss';
 
 const RightPanel = () => {
   return <div className="right-panel">RightPanel</div>;

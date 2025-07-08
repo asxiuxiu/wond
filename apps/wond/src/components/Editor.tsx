@@ -1,8 +1,8 @@
 import './Editor.scss';
-import LeftPanel from './LeftPanel/LeftPanel';
-import RightPanel from './RightPanel/RightPanel';
 import React, { useEffect, useRef } from 'react';
 import { WondEditor } from '@wond/core';
+import LeftPanel from './LeftPanel/index';
+import RightPanel from './RightPanel/index';
 
 // Extend Window interface
 declare global {
