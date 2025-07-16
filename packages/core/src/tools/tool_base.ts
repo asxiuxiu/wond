@@ -1,6 +1,5 @@
 import type { WondEditor } from '../editor';
-import { type IMouseEvent } from '../host_event_manager';
-
+import { type IMouseEvent } from '../types';
 
 export interface IBaseTool {
   onStart: (event: IMouseEvent, editor: WondEditor) => void;

@@ -1,6 +1,6 @@
 import { EventEmitter } from '@wond/common';
 import { type WondOperation } from './operations/operation_base';
-import { SceneGraph } from './scene_graph';
+import { WondSceneGraph } from './scene_graph';
 
 interface WondCommandPhaseEvent {
   changeStart(command: WondCommand): void;
@@ -15,7 +15,7 @@ export class WondCommand {
   private operations: WondOperation[] = [];
   private eventEmitter = new EventEmitter<WondCommandPhaseEvent>();
 
-  public execute = (sceneGraph: SceneGraph) => {
+  public execute = (sceneGraph: WondSceneGraph) => {
     for (let i = 0; i < this.operations.length; i++) {
       const operation = this.operations[i];
       operation.execute(sceneGraph);
@@ -23,7 +23,7 @@ export class WondCommand {
     }
   };
 
-  public undo = (sceneGraph: SceneGraph) => {
+  public undo = (sceneGraph: WondSceneGraph) => {
     for (let i = this.operations.length - 1; i >= 0; i--) {
       const operation = this.operations[i];
       operation.undo(sceneGraph);
@@ -47,14 +47,14 @@ export class WondCommand {
   };
 }
 
-export class CommandManager {
+export class WondCommandManager {
   private undoStack: WondCommand[] = [];
   private redoStack: WondCommand[] = [];
 
   private activeCommand: WondCommand | null = null;
 
-  private sceneGraph: SceneGraph;
-  constructor(sceneGraph: SceneGraph) {
+  private sceneGraph: WondSceneGraph;
+  constructor(sceneGraph: WondSceneGraph) {
     this.sceneGraph = sceneGraph;
   }
 

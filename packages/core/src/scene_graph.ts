@@ -3,10 +3,12 @@ import { WondDocument } from './graphics/document';
 import { ZERO_BOUNDING_AREA } from './constants';
 import type { WondGraphics } from './graphics/graphics';
 import type { WondBoundingArea } from './geo/bounding_area';
+import type { WondCoordinateManager } from './coordinate_manager';
 
-export class SceneGraph {
+export class WondSceneGraph {
   private readonly rootNode: WondDocument;
   private readonly selectedNode: WondGraphics[] = [];
+  private readonly coordinateManager: WondCoordinateManager;
 
   private canvasKit: CanvasKit | null = null;
   private paintSurface: Surface | null = null;
@@ -14,12 +16,14 @@ export class SceneGraph {
 
   private dirtyBoundingArea: WondBoundingArea | null = null;
 
-  constructor(paintElement: HTMLCanvasElement) {
+  constructor(paintElement: HTMLCanvasElement, coordinateManager: WondCoordinateManager) {
     this.rootNode = new WondDocument({
       name: 'rootPage',
       visible: true,
       children: [],
     });
+    this.coordinateManager = coordinateManager;
+
     this.initCanvasKit(paintElement);
   }
 
@@ -207,12 +211,19 @@ export class SceneGraph {
   private rafDraw() {
     if (this.canvasKit && this.paintSurface && this.fontData.length > 0) {
       const drawFrame = (canvas: Canvas) => {
+        canvas.save();
+        const viewportMeta = this.coordinateManager.getViewSpaceMeta();
+        canvas.scale(viewportMeta.zoom, viewportMeta.zoom);
+        canvas.translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY);
+
         this.rootNode.draw(this.canvasKit!, canvas);
         for (const child of this.rootNode.children) {
           child.draw(this.canvasKit!, canvas);
         }
 
         this.drawSelections(this.canvasKit!, canvas);
+
+        canvas.restore();
 
         this.paintSurface?.requestAnimationFrame(drawFrame);
       };

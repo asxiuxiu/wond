@@ -1,7 +1,7 @@
 import { type IBaseTool } from './tool_base';
 import { WondCommand } from '../command_manager';
 import { WondRect } from '../graphics/rect';
-import { type IMouseEvent } from '../host_event_manager';
+import { type IMouseEvent } from '../types';
 import { type IPoint } from '../types';
 import type { WondEditor } from '../editor';
 import { WondAddNodeOperation, WondUpdateSelectionOperation } from '../operations';
@@ -14,6 +14,7 @@ export class ToolDrawRect implements IBaseTool {
   onStart = (event: IMouseEvent, editor: WondEditor) => {
     this.startPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
   };
+
   onDrag = (event: IMouseEvent, editor: WondEditor) => {
     if (!this.startPoint) return;
     this.endPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });

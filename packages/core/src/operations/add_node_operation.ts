@@ -1,7 +1,7 @@
 import { WondGraphics } from '../graphics/graphics';
 import { type WondOperation } from './operation_base';
 import { WondDocument } from '../graphics/document';
-import { SceneGraph } from '../scene_graph';
+import { WondSceneGraph } from '../scene_graph';
 import { WondBoundingArea } from '../geo/bounding_area';
 
 export class WondAddNodeOperation implements WondOperation {
@@ -34,7 +34,7 @@ export class WondAddNodeOperation implements WondOperation {
     return currentDepthNode;
   };
 
-  execute = (sceneGraph: SceneGraph) => {
+  execute = (sceneGraph: WondSceneGraph) => {
     const targetCoordinatesParentNode = this.getCoordinatesParentNode(sceneGraph.getRootNode());
     if (!targetCoordinatesParentNode) {
       return;
@@ -45,7 +45,7 @@ export class WondAddNodeOperation implements WondOperation {
     }
   };
 
-  undo = (sceneGraph: SceneGraph) => {
+  undo = (sceneGraph: WondSceneGraph) => {
     const targetCoordinatesParentNode = this.getCoordinatesParentNode(sceneGraph.getRootNode());
     if (!targetCoordinatesParentNode) {
       return;

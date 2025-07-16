@@ -1,8 +1,8 @@
-import { CoordinateManager } from './coordinate_manager';
-import { CommandManager } from './command_manager';
-import { HostEventManager } from './host_event_manager';
-import { SceneGraph } from './scene_graph';
-import { WondToolManager } from './tool_manager';
+import { WondCoordinateManager } from './coordinate_manager';
+import { WondCommandManager } from './command_manager';
+import { WondHostEventManager } from './host_event_manager';
+import { WondSceneGraph } from './scene_graph';
+import { WondToolManager } from './tools';
 
 export interface WondEditorOptions {
   container: HTMLDivElement;
@@ -11,10 +11,10 @@ export interface WondEditorOptions {
 export class WondEditor {
   canvasRootElement: HTMLCanvasElement;
 
-  hostEventManager: HostEventManager;
-  sceneGraph: SceneGraph;
-  commandManager: CommandManager;
-  coordinateManager: CoordinateManager;
+  hostEventManager: WondHostEventManager;
+  sceneGraph: WondSceneGraph;
+  commandManager: WondCommandManager;
+  coordinateManager: WondCoordinateManager;
   toolManager: WondToolManager;
   constructor(options: WondEditorOptions) {
     // init canvas element
@@ -26,12 +26,12 @@ export class WondEditor {
     canvasWrapper.appendChild(canvasElement);
     this.canvasRootElement = canvasElement;
 
-    this.coordinateManager = new CoordinateManager(canvasElement);
+    this.coordinateManager = new WondCoordinateManager(canvasElement);
 
-    this.hostEventManager = new HostEventManager(canvasElement);
+    this.hostEventManager = new WondHostEventManager(canvasElement);
 
-    this.sceneGraph = new SceneGraph(canvasElement);
-    this.commandManager = new CommandManager(this.sceneGraph);
+    this.sceneGraph = new WondSceneGraph(canvasElement, this.coordinateManager);
+    this.commandManager = new WondCommandManager(this.sceneGraph);
     this.toolManager = new WondToolManager(this);
     this.initBindings();
   }
@@ -42,5 +42,6 @@ export class WondEditor {
     this.hostEventManager.on('move', this.toolManager.onMove);
     this.hostEventManager.on('end', this.toolManager.onEnd);
     this.hostEventManager.on('drag', this.toolManager.onDrag);
+    this.hostEventManager.on('contextmenu', this.toolManager.onContextMenu);
   }
 }

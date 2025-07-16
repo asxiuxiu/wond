@@ -1,6 +1,6 @@
 import type { IPoint } from './types';
 
-interface ViewSpaceMeta {
+export interface ViewSpaceMeta {
   viewportOffsetX: number;
   viewportOffsetY: number;
   sceneScrollX: number;
@@ -8,10 +8,10 @@ interface ViewSpaceMeta {
   zoom: number;
 }
 
-export class CoordinateManager {
-  private canvasElement: HTMLCanvasElement
+export class WondCoordinateManager {
+  private canvasElement: HTMLCanvasElement;
 
-  private viewportMeta: ViewSpaceMeta = {
+  private viewSpaceMeta: ViewSpaceMeta = {
     viewportOffsetX: 0,
     viewportOffsetY: 0,
     sceneScrollX: 0,
@@ -26,21 +26,31 @@ export class CoordinateManager {
 
   private initViewportMeta() {
     const boundingBox = this.canvasElement.getBoundingClientRect();
-    this.viewportMeta.viewportOffsetX = boundingBox.left;
-    this.viewportMeta.viewportOffsetY = boundingBox.top;
+    this.viewSpaceMeta.viewportOffsetX = boundingBox.left;
+    this.viewSpaceMeta.viewportOffsetY = boundingBox.top;
   }
 
-  public screenCoordsToSceneCoords(screenPoint: IPoint): IPoint {
+  public screenCoordsToSceneCoords(screenPoint: IPoint, overrideViewSpaceMeta: ViewSpaceMeta | null = null): IPoint {
+    const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
     return {
-      x: this.viewportMeta.sceneScrollX + (screenPoint.x - this.viewportMeta.viewportOffsetX) / this.viewportMeta.zoom,
-      y: this.viewportMeta.sceneScrollY + (screenPoint.y - this.viewportMeta.viewportOffsetY) / this.viewportMeta.zoom,
+      x: (screenPoint.x - viewSpaceMeta.viewportOffsetX) / viewSpaceMeta.zoom - viewSpaceMeta.sceneScrollX,
+      y: (screenPoint.y - viewSpaceMeta.viewportOffsetY) / viewSpaceMeta.zoom - viewSpaceMeta.sceneScrollY,
     };
   }
 
-  public sceneCoordsToScreenCoords(scenePoint: IPoint): IPoint {
+  public sceneCoordsToScreenCoords(scenePoint: IPoint, overrideViewSpaceMeta: ViewSpaceMeta | null = null): IPoint {
+    const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
     return {
-      x: (scenePoint.x - this.viewportMeta.sceneScrollX) * this.viewportMeta.zoom + this.viewportMeta.viewportOffsetX,
-      y: (scenePoint.y - this.viewportMeta.sceneScrollY) * this.viewportMeta.zoom + this.viewportMeta.viewportOffsetY,
+      x: (scenePoint.x - viewSpaceMeta.sceneScrollX) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetX,
+      y: (scenePoint.y - viewSpaceMeta.sceneScrollY) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetY,
     };
+  }
+
+  public updateViewSpaceMeta(meta: Partial<ViewSpaceMeta>) {
+    this.viewSpaceMeta = { ...this.viewSpaceMeta, ...meta };
+  }
+
+  public getViewSpaceMeta() {
+    return this.viewSpaceMeta;
   }
 }
