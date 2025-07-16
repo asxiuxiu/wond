@@ -41,8 +41,8 @@ export class WondCoordinateManager {
   public sceneCoordsToScreenCoords(scenePoint: IPoint, overrideViewSpaceMeta: ViewSpaceMeta | null = null): IPoint {
     const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
     return {
-      x: (scenePoint.x - viewSpaceMeta.sceneScrollX) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetX,
-      y: (scenePoint.y - viewSpaceMeta.sceneScrollY) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetY,
+      x: (scenePoint.x + viewSpaceMeta.sceneScrollX) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetX,
+      y: (scenePoint.y + viewSpaceMeta.sceneScrollY) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetY,
     };
   }
 
