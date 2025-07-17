@@ -1,9 +1,8 @@
-import { type IBaseTool } from './tool_base';
+import { ToolBase } from './tool_base';
 import { type IMouseEvent } from '../types';
-import { type IPoint } from '../types';
 import type { WondEditor } from '../editor';
 
-export class ToolMove implements IBaseTool {
+export class ToolMove extends ToolBase {
   onStart = (event: IMouseEvent, editor: WondEditor) => {};
   onDrag = (event: IMouseEvent, editor: WondEditor) => {};
 

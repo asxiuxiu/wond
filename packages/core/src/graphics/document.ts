@@ -1,4 +1,4 @@
-import { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type Canvas, type CanvasKit } from 'canvaskit-wasm';
 import type { WondColor } from '../types';
 import { GraphicsType, WondGraphics } from './graphics';
 

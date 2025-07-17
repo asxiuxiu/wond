@@ -7,6 +7,7 @@ interface IHostEvent {
   drag(event: IMouseEvent): void;
   end(event: IMouseEvent): void;
   contextmenu(event: IMouseEvent): void;
+  wheel(event: IMouseEvent): void;
 }
 
 export class WondHostEventManager {
@@ -25,13 +26,33 @@ export class WondHostEventManager {
     document.addEventListener('pointermove', this.onPointerMove);
     document.addEventListener('pointerup', this.onPointerUp);
     document.addEventListener('contextmenu', this.onContextMenu);
+    document.addEventListener('wheel', this.onWheel, { passive: false });
   }
 
   clear() {
     document.removeEventListener('pointerdown', this.onPointerDown);
     document.removeEventListener('pointermove', this.onPointerMove);
     document.removeEventListener('pointerup', this.onPointerUp);
+    document.removeEventListener('contextmenu', this.onContextMenu);
+    document.removeEventListener('wheel', this.onWheel);
   }
+
+  private onWheel = (event: WheelEvent) => {
+    if (event.target !== this.hostElement) {
+      return;
+    }
+    event.preventDefault();
+    this.eventEmitter.emit('wheel', {
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      deltaY: event.deltaY,
+      button: event.button,
+      nativeEvent: event,
+    });
+  };
 
   private onContextMenu = (event: MouseEvent) => {
     if (event.target !== this.hostElement) {

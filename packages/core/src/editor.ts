@@ -43,5 +43,10 @@ export class WondEditor {
     this.hostEventManager.on('end', this.toolManager.onEnd);
     this.hostEventManager.on('drag', this.toolManager.onDrag);
     this.hostEventManager.on('contextmenu', this.toolManager.onContextMenu);
+    this.hostEventManager.on('wheel', (event) => {
+      if (event.ctrlKey) {
+        this.coordinateManager.scaleByStep(event.deltaY! > 0 ? 1 : -1, { x: event.clientX, y: event.clientY });
+      }
+    });
   }
 }

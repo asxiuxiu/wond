@@ -53,4 +53,32 @@ export class WondCoordinateManager {
   public getViewSpaceMeta() {
     return this.viewSpaceMeta;
   }
+
+  private deltaYToZoomRatio(deltaY: number) {
+    const sign = -Math.sign(deltaY);
+    const speed = 0.05;
+    const factor = Math.pow(1 + speed, sign);
+    return factor;
+  }
+
+  public scaleByStep(deltaY: number, basePoint: IPoint) {
+    const newZoom = this.viewSpaceMeta.zoom * this.deltaYToZoomRatio(deltaY);
+    this.scaleTo(newZoom, basePoint);
+    8;
+  }
+
+  public scaleTo(newZoom: number, basePoint: IPoint) {
+    const clampedZoom = Math.min(256, Math.max(0.015625, newZoom));
+
+    const baseScenePoint = this.screenCoordsToSceneCoords(basePoint);
+
+    const newSceneScrollX = (basePoint.x - this.viewSpaceMeta.viewportOffsetX) / clampedZoom - baseScenePoint.x;
+    const newSceneScrollY = (basePoint.y - this.viewSpaceMeta.viewportOffsetY) / clampedZoom - baseScenePoint.y;
+
+    this.updateViewSpaceMeta({
+      zoom: clampedZoom,
+      sceneScrollX: newSceneScrollX,
+      sceneScrollY: newSceneScrollY,
+    });
+  }
 }

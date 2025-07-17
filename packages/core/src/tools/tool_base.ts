@@ -1,9 +1,9 @@
 import type { WondEditor } from '../editor';
 import { type IMouseEvent } from '../types';
 
-export interface IBaseTool {
-  onStart: (event: IMouseEvent, editor: WondEditor) => void;
-  onDrag: (event: IMouseEvent, editor: WondEditor) => void;
-  onMove: (event: IMouseEvent, editor: WondEditor) => void;
-  onEnd: (event: IMouseEvent, editor: WondEditor) => void;
+export class ToolBase {
+  onStart = (event: IMouseEvent, editor: WondEditor) => {};
+  onDrag = (event: IMouseEvent, editor: WondEditor) => {};
+  onMove = (event: IMouseEvent, editor: WondEditor) => {};
+  onEnd = (event: IMouseEvent, editor: WondEditor) => {};
 }

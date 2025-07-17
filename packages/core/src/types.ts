@@ -16,6 +16,7 @@ export interface IMouseEvent {
   shiftKey: boolean;
   clientX: number;
   clientY: number;
+  deltaY?: number;
   button: number;
   nativeEvent: any;
 }

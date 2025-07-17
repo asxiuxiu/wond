@@ -1,5 +1,5 @@
 import { getUuid } from '@wond/common';
-import { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type Canvas, type CanvasKit } from 'canvaskit-wasm';
 import { ZERO_BOUNDING_AREA } from '../constants';
 import { WondBoundingArea } from '../geo/bounding_area';
 /**
@@ -8,12 +8,12 @@ import { WondBoundingArea } from '../geo/bounding_area';
  * | 0 | 0 | 1 |
  */
 export interface I2dMatrix {
-  a: number; // horizontal scale
-  b: number; // horizontal skew
-  c: number; // vertical skew
-  d: number; // vertical scale
-  e: number; // horizontal translation
-  f: number; // vertical translation
+  m00: number;
+  m01: number;
+  m02: number;
+  m10: number;
+  m11: number;
+  m12: number;
 }
 
 export const GraphicsType = {
@@ -29,7 +29,7 @@ export class WondGraphics {
   id: string;
   type: GraphicsType = GraphicsType.Graph;
   name = '';
-  transform: I2dMatrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  transform: I2dMatrix = { m00: 1, m01: 0, m02: 0, m10: 0, m11: 1, m12: 0 };
   visible = true;
   children?: WondGraphics[];
 
@@ -42,5 +42,5 @@ export class WondGraphics {
     return ZERO_BOUNDING_AREA;
   }
 
-  public draw(canvasKit: CanvasKit, canvas: Canvas) { }
+  public draw(canvasKit: CanvasKit, canvas: Canvas) {}
 }

@@ -1,15 +1,15 @@
 import type { WondEditor } from '../editor';
 import { type IMouseEvent } from '../types';
-import { type IBaseTool } from './tool_base';
+import { type ToolBase } from './tool_base';
 import { ToolDrawRect } from './tool_draw_rect';
 import { ToolHand } from './tool_hand';
 import { ToolMove } from './tool_move';
 import { WondToolType } from './types';
 
 export class WondToolManager {
-  private activeToolStack: IBaseTool[] = [];
+  private activeToolStack: ToolBase[] = [];
   private editor: WondEditor;
-  private tools: Record<WondToolType, IBaseTool> = {
+  private tools: Record<WondToolType, ToolBase> = {
     [WondToolType.DrawRect]: new ToolDrawRect(),
     [WondToolType.Hand]: new ToolHand(),
     [WondToolType.Move]: new ToolMove(),
@@ -19,7 +19,7 @@ export class WondToolManager {
     this.editor = editor;
   }
 
-  getActiveTool(): IBaseTool {
+  getActiveTool(): ToolBase {
     if (this.activeToolStack.length > 0) {
       return this.activeToolStack[this.activeToolStack.length - 1];
     }

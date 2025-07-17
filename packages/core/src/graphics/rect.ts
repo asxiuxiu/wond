@@ -1,4 +1,4 @@
-import { type Canvas, type CanvasKit } from 'canvaskit-wasm';
+import { type Canvas, type CanvasKit, type Matrix3x3, type Paint } from 'canvaskit-wasm';
 import { GraphicsType, WondGraphics } from './graphics';
 import { WondBoundingArea } from '../geo/bounding_area';
 
@@ -13,11 +13,31 @@ export class WondRect extends WondGraphics {
 
   getBoundingArea(): WondBoundingArea {
     return new WondBoundingArea(
-      this.transform.e,
-      this.transform.e + this.size.x,
-      this.transform.f,
-      this.transform.f + this.size.y,
+      this.transform.m02,
+      this.transform.m02 + this.size.x,
+      this.transform.m12,
+      this.transform.m12 + this.size.y,
     );
+  }
+
+  private drawRect(canvasKit: CanvasKit, canvas: Canvas, paint: Paint) {
+    canvas.save();
+    const transformMatrix: Matrix3x3 = Float32Array.from([
+      this.transform.m00,
+      this.transform.m01,
+      this.transform.m02,
+      this.transform.m10,
+      this.transform.m11,
+      this.transform.m12,
+      0,
+      0,
+      1,
+    ]);
+    canvas.concat(transformMatrix);
+    const rr = canvasKit.RRectXY(canvasKit.LTRBRect(0, 0, this.size.x, this.size.y), 0, 0);
+    canvas.drawRRect(rr, paint);
+
+    canvas.restore();
   }
 
   public draw(canvasKit: CanvasKit, canvas: Canvas): void {
@@ -25,16 +45,7 @@ export class WondRect extends WondGraphics {
     paint.setColor(canvasKit.Color4f(217 / 255, 217 / 255, 217 / 255, 1.0));
     paint.setStyle(canvasKit.PaintStyle.Fill);
     paint.setAntiAlias(true);
-    const rr = canvasKit.RRectXY(
-      canvasKit.LTRBRect(
-        this.transform.e,
-        this.transform.f,
-        this.transform.e + this.size.x,
-        this.transform.f + this.size.y,
-      ),
-      0,
-      0,
-    );
-    canvas.drawRRect(rr, paint);
+
+    this.drawRect(canvasKit, canvas, paint);
   }
 }

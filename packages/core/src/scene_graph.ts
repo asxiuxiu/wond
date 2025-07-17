@@ -208,22 +208,36 @@ export class WondSceneGraph {
     }
   }
 
+  private drawBackgroundLayer(canvasKit: CanvasKit, canvas: Canvas) {
+    this.rootNode.draw(canvasKit, canvas);
+  }
+
+  private drawContentLayer(canvasKit: CanvasKit, canvas: Canvas) {
+    canvas.save();
+    const viewportMeta = this.coordinateManager.getViewSpaceMeta();
+    canvas.scale(viewportMeta.zoom, viewportMeta.zoom);
+    canvas.translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY);
+
+    this.rootNode.draw(canvasKit, canvas);
+    for (const child of this.rootNode.children) {
+      child.draw(canvasKit, canvas);
+    }
+
+    canvas.restore();
+  }
+
+  private drawOverlayLayer(canvasKit: CanvasKit, canvas: Canvas) {
+    this.drawSelections(canvasKit, canvas);
+  }
+
   private rafDraw() {
     if (this.canvasKit && this.paintSurface && this.fontData.length > 0) {
       const drawFrame = (canvas: Canvas) => {
-        canvas.save();
-        const viewportMeta = this.coordinateManager.getViewSpaceMeta();
-        canvas.scale(viewportMeta.zoom, viewportMeta.zoom);
-        canvas.translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY);
+        this.drawBackgroundLayer(this.canvasKit!, canvas);
 
-        this.rootNode.draw(this.canvasKit!, canvas);
-        for (const child of this.rootNode.children) {
-          child.draw(this.canvasKit!, canvas);
-        }
+        this.drawContentLayer(this.canvasKit!, canvas);
 
-        this.drawSelections(this.canvasKit!, canvas);
-
-        canvas.restore();
+        this.drawOverlayLayer(this.canvasKit!, canvas);
 
         this.paintSurface?.requestAnimationFrame(drawFrame);
       };

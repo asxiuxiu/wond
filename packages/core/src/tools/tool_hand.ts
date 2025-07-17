@@ -1,10 +1,10 @@
-import { type IBaseTool } from './tool_base';
+import { ToolBase } from './tool_base';
 import { type IMouseEvent } from '../types';
 import { type IPoint } from '../types';
 import type { WondEditor } from '../editor';
 import type { ViewSpaceMeta } from '../coordinate_manager';
 
-export class ToolHand implements IBaseTool {
+export class ToolHand extends ToolBase {
   private startPoint: IPoint | null = null;
   private originalViewSpaceMeta: ViewSpaceMeta | null = null;
 
@@ -17,10 +17,6 @@ export class ToolHand implements IBaseTool {
   };
   onDrag = (event: IMouseEvent, editor: WondEditor) => {
     this.onDragScene(event, editor);
-  };
-
-  onMove = (event: IMouseEvent, editor: WondEditor) => {
-    // do nothing.
   };
 
   onEnd = (event: IMouseEvent, editor: WondEditor) => {
