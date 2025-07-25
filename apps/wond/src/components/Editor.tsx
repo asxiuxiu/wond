@@ -1,6 +1,6 @@
 import './Editor.scss';
 import React, { useEffect, useRef } from 'react';
-import { WondEditor } from '@wond/core';
+import { initWondEditor, type WondEditor } from '@wond/core';
 import LeftPanel from './LeftPanel/index';
 import RightPanel from './RightPanel/index';
 
@@ -18,11 +18,13 @@ const Editor: React.FC = () => {
     const containerEl = containerRef.current;
     if (!containerEl) return;
 
-    const editor = new WondEditor({
+    console.time('initWondEditor');
+    initWondEditor({
       container: containerEl,
+    }).then((editor) => {
+      window.editor = editor;
+      console.timeEnd('initWondEditor');
     });
-
-    window.editor = editor;
   }, [containerRef]);
 
   return (

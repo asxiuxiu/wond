@@ -8,6 +8,9 @@ export interface WondEditorOptions {
   container: HTMLDivElement;
 }
 
+// 内部 Symbol，用于保护构造函数
+const FACTORY_SYMBOL = Symbol('WondEditor.factory');
+
 export class WondEditor {
   canvasRootElement: HTMLCanvasElement;
 
@@ -16,7 +19,15 @@ export class WondEditor {
   commandManager: WondCommandManager;
   coordinateManager: WondCoordinateManager;
   toolManager: WondToolManager;
-  constructor(options: WondEditorOptions) {
+
+  constructor(options: WondEditorOptions, factoryToken?: typeof FACTORY_SYMBOL) {
+    // 检查是否通过工厂函数调用
+    if (factoryToken !== FACTORY_SYMBOL) {
+      throw new Error(
+        'WondEditor cannot be instantiated directly. Please use initWondEditor() instead.'
+      );
+    }
+
     // init canvas element
     const canvasWrapper = options.container;
     const boundingBox = canvasWrapper.getBoundingClientRect();
@@ -48,5 +59,10 @@ export class WondEditor {
         this.coordinateManager.scaleByStep(event.deltaY! > 0 ? 1 : -1, { x: event.clientX, y: event.clientY });
       }
     });
+  }
+
+  // 静态方法供工厂函数内部使用
+  static _createInstance(options: WondEditorOptions): WondEditor {
+    return new WondEditor(options, FACTORY_SYMBOL);
   }
 }

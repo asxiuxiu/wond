@@ -1,5 +1,5 @@
 import type { WondEditor } from '../editor';
-import { type IMouseEvent } from '../types';
+import { MouseEventButton, type IMouseEvent } from '../types';
 import { type ToolBase } from './tool_base';
 import { ToolDrawRect } from './tool_draw_rect';
 import { ToolHand } from './tool_hand';
@@ -38,10 +38,10 @@ export class WondToolManager {
   }
 
   onStart = (event: IMouseEvent) => {
-    if (event.button === 2) {
+    if (event.button === MouseEventButton.Right) {
       return;
     }
-    if (event.button === 1) {
+    if (event.button === MouseEventButton.Middle) {
       this.pushActiveTool(WondToolType.Hand);
     }
 
@@ -49,24 +49,24 @@ export class WondToolManager {
   };
 
   onDrag = (event: IMouseEvent) => {
-    if (event.button === 2) {
+    if (event.button === MouseEventButton.Right) {
       return;
     }
     this.getActiveTool().onDrag(event, this.editor);
   };
 
   onMove = (event: IMouseEvent) => {
-    if (event.button === 2) {
+    if (event.button === MouseEventButton.Right) {
       return;
     }
     this.getActiveTool().onMove(event, this.editor);
   };
 
   onEnd = (event: IMouseEvent) => {
-    if (event.button === 2) {
+    if (event.button === MouseEventButton.Right) {
       return;
     }
-    if (event.button === 1) {
+    if (event.button === MouseEventButton.Middle) {
       this.popActiveTool(WondToolType.Hand);
     }
     this.getActiveTool().onEnd(event, this.editor);

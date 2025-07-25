@@ -1,11 +1,11 @@
 import { ToolBase } from './tool_base';
 import { type IMouseEvent } from '../types';
-import { type IPoint } from '../types';
+import { type IWondPoint } from '../types';
 import type { WondEditor } from '../editor';
 import type { ViewSpaceMeta } from '../coordinate_manager';
 
 export class ToolHand extends ToolBase {
-  private startPoint: IPoint | null = null;
+  private startPoint: IWondPoint | null = null;
   private originalViewSpaceMeta: ViewSpaceMeta | null = null;
 
   onStart = (event: IMouseEvent, editor: WondEditor) => {

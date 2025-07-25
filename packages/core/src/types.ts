@@ -1,9 +1,26 @@
-export interface IPoint {
+import type { Canvas, CanvasKit, FontMgr, Paint } from 'canvaskit-wasm';
+import type { Matrix } from 'transformation-matrix';
+
+declare global {
+  interface Window {
+    canvaskit_context: {
+      canvaskit: CanvasKit;
+      fontMgr: FontMgr;
+    };
+  }
+}
+
+export interface IWondPoint {
   x: number;
   y: number;
 }
 
-export interface WondColor {
+export interface IWondEdge {
+  start: IWondPoint;
+  end: IWondPoint;
+}
+
+export interface IWondColor {
   r: number;
   g: number;
   b: number;
@@ -28,3 +45,11 @@ export const MouseEventButton = {
 } as const;
 
 export type MouseEventButton = (typeof MouseEventButton)[keyof typeof MouseEventButton];
+
+export interface WondGraphicDrawingContext {
+  canvaskit: CanvasKit;
+  canvas: Canvas;
+  fontMgr: FontMgr;
+  canvasTransform: Matrix;
+  overlayStrokePaint: Paint;
+}

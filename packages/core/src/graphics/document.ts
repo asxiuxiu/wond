@@ -1,10 +1,9 @@
-import { type Canvas, type CanvasKit } from 'canvaskit-wasm';
-import type { WondColor } from '../types';
+import type { IWondColor, WondGraphicDrawingContext } from '../types';
 import { GraphicsType, WondGraphics } from './graphics';
 
 export class WondDocument extends WondGraphics {
   type: GraphicsType = GraphicsType.Document;
-  backgroundColor: WondColor;
+  backgroundColor: IWondColor;
   children: WondGraphics[];
 
   constructor(attrs: Partial<Omit<WondDocument, 'id' | 'type'>>) {
@@ -13,7 +12,8 @@ export class WondDocument extends WondGraphics {
     this.children = attrs.children || [];
   }
 
-  public draw(canvasKit: CanvasKit, canvas: Canvas): void {
+  public draw(context: WondGraphicDrawingContext): void {
+    const { canvas, canvaskit: canvasKit } = context;
     canvas.clear(
       canvasKit.Color(this.backgroundColor.r, this.backgroundColor.g, this.backgroundColor.b, this.backgroundColor.a),
     );

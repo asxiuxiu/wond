@@ -1,5 +1,5 @@
 import { WondSceneGraph } from '../scene_graph';
-import { WondBoundingArea } from '../geo/bounding_area';
+import { WondBoundingArea } from '../geo';
 
 /**
  * Operation is an atomic operation

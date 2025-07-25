@@ -1,4 +1,5 @@
-import type { IPoint } from './types';
+import type { IWondPoint } from './types';
+import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
 
 export interface ViewSpaceMeta {
   viewportOffsetX: number;
@@ -30,20 +31,34 @@ export class WondCoordinateManager {
     this.viewSpaceMeta.viewportOffsetY = boundingBox.top;
   }
 
-  public screenCoordsToSceneCoords(screenPoint: IPoint, overrideViewSpaceMeta: ViewSpaceMeta | null = null): IPoint {
+  public screenCoordsToSceneCoords(
+    screenPoint: IWondPoint,
+    overrideViewSpaceMeta: ViewSpaceMeta | null = null,
+  ): IWondPoint {
     const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
-    return {
-      x: (screenPoint.x - viewSpaceMeta.viewportOffsetX) / viewSpaceMeta.zoom - viewSpaceMeta.sceneScrollX,
-      y: (screenPoint.y - viewSpaceMeta.viewportOffsetY) / viewSpaceMeta.zoom - viewSpaceMeta.sceneScrollY,
-    };
+    return applyToPoint(
+      compose([
+        translate(-viewSpaceMeta.sceneScrollX, -viewSpaceMeta.sceneScrollY),
+        scale(1 / viewSpaceMeta.zoom),
+        translate(-viewSpaceMeta.viewportOffsetX, -viewSpaceMeta.viewportOffsetY),
+      ]),
+      screenPoint,
+    );
   }
 
-  public sceneCoordsToScreenCoords(scenePoint: IPoint, overrideViewSpaceMeta: ViewSpaceMeta | null = null): IPoint {
+  public sceneCoordsToScreenCoords(
+    scenePoint: IWondPoint,
+    overrideViewSpaceMeta: ViewSpaceMeta | null = null,
+  ): IWondPoint {
     const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
-    return {
-      x: (scenePoint.x + viewSpaceMeta.sceneScrollX) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetX,
-      y: (scenePoint.y + viewSpaceMeta.sceneScrollY) * viewSpaceMeta.zoom + viewSpaceMeta.viewportOffsetY,
-    };
+    return applyToPoint(
+      compose([
+        translate(viewSpaceMeta.viewportOffsetX, viewSpaceMeta.viewportOffsetY),
+        scale(viewSpaceMeta.zoom),
+        translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY),
+      ]),
+      scenePoint,
+    );
   }
 
   public updateViewSpaceMeta(meta: Partial<ViewSpaceMeta>) {
@@ -61,13 +76,13 @@ export class WondCoordinateManager {
     return factor;
   }
 
-  public scaleByStep(deltaY: number, basePoint: IPoint) {
+  public scaleByStep(deltaY: number, basePoint: IWondPoint) {
     const newZoom = this.viewSpaceMeta.zoom * this.deltaYToZoomRatio(deltaY);
     this.scaleTo(newZoom, basePoint);
     8;
   }
 
-  public scaleTo(newZoom: number, basePoint: IPoint) {
+  public scaleTo(newZoom: number, basePoint: IWondPoint) {
     const clampedZoom = Math.min(256, Math.max(0.015625, newZoom));
 
     const baseScenePoint = this.screenCoordsToSceneCoords(basePoint);

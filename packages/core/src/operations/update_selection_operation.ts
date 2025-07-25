@@ -2,7 +2,7 @@ import { WondGraphics } from '../graphics/graphics';
 import { type WondOperation } from './operation_base';
 import { WondSceneGraph } from '../scene_graph';
 import { ZERO_BOUNDING_AREA } from '../constants';
-import { WondBoundingArea } from '../geo/bounding_area';
+import { WondBoundingArea } from '../geo';
 
 export class WondUpdateSelectionOperation implements WondOperation {
   targetSelectionNodes: WondGraphics[] = [];

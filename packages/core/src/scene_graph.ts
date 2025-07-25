@@ -1,18 +1,20 @@
-import CanvasKitInit, { type Canvas, type CanvasKit, type Surface } from 'canvaskit-wasm';
+import { type Canvas, type Surface } from 'canvaskit-wasm';
 import { WondDocument } from './graphics/document';
-import { ZERO_BOUNDING_AREA } from './constants';
+import { DEFAULT_OVERLAY_COLOR as DEFAULT_OVERLAY_COLOR, ZERO_BOUNDING_AREA } from './constants';
 import type { WondGraphics } from './graphics/graphics';
-import type { WondBoundingArea } from './geo/bounding_area';
+import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
 import type { WondCoordinateManager } from './coordinate_manager';
+import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
+import { applyToPoints, compose, scale, translate } from 'transformation-matrix';
+import { getMatrix3x3FromTransform } from './utils';
+import { getCanvasKitContext } from './context';
 
 export class WondSceneGraph {
   private readonly rootNode: WondDocument;
-  private readonly selectedNode: WondGraphics[] = [];
+  private readonly selectedNodes: WondGraphics[] = [];
   private readonly coordinateManager: WondCoordinateManager;
 
-  private canvasKit: CanvasKit | null = null;
   private paintSurface: Surface | null = null;
-  private fontData: ArrayBuffer[] = [];
 
   private dirtyBoundingArea: WondBoundingArea | null = null;
 
@@ -24,23 +26,17 @@ export class WondSceneGraph {
     });
     this.coordinateManager = coordinateManager;
 
-    this.initCanvasKit(paintElement);
+    this.initPaint(paintElement);
   }
 
-  private initCanvasKit(canvasElement: HTMLCanvasElement) {
-    const initCanvasKit = CanvasKitInit();
-
-    const initFont = fetch('https://storage.googleapis.com/skia-cdn/misc/Roboto-Regular.ttf').then((response) =>
-      response.arrayBuffer(),
-    );
-
-    Promise.all([initCanvasKit, initFont]).then(([canvasKit, robotoData]) => {
-      this.canvasKit = canvasKit;
-      this.paintSurface = this.canvasKit.MakeWebGLCanvasSurface(canvasElement);
-      this.fontData.push(robotoData);
-
-      this.rafDraw();
-    });
+  private initPaint(canvasElement: HTMLCanvasElement) {
+    const { canvaskit } = getCanvasKitContext();
+    const paintSurface = canvaskit.MakeWebGLCanvasSurface(canvasElement);
+    if (!paintSurface) {
+      throw new Error('Failed to create paint surface');
+    }
+    this.paintSurface = paintSurface;
+    this.rafDraw();
   }
 
   public getRootNode() {
@@ -48,15 +44,15 @@ export class WondSceneGraph {
   }
 
   public getSelections() {
-    return [...this.selectedNode];
+    return [...this.selectedNodes];
   }
 
   public addSelections(nodes: WondGraphics[]) {
-    this.selectedNode.push(...nodes);
+    this.selectedNodes.push(...nodes);
   }
 
   public clearSelection() {
-    this.selectedNode.length = 0;
+    this.selectedNodes.length = 0;
   }
 
   public markDirtyArea(area: WondBoundingArea) {
@@ -70,180 +66,233 @@ export class WondSceneGraph {
     }
   }
 
-  private drawSelections(canvasKit: CanvasKit, canvas: Canvas) {
-    let targetSelectionArea: WondBoundingArea | null = null;
-    for (const child of this.selectedNode) {
-      if (targetSelectionArea === null) {
-        targetSelectionArea = child.getBoundingArea();
-      } else {
-        targetSelectionArea.union(child.getBoundingArea());
+  private drawSelections(context: WondGraphicDrawingContext) {
+    if (this.selectedNodes.length === 0) {
+      return;
+    }
+
+    const { canvaskit, canvas, fontMgr, canvasTransform, overlayStrokePaint } = context;
+
+    for (const child of this.selectedNodes) {
+      child.drawOutline(context);
+    }
+
+    const boundingRectPath = new canvaskit.Path();
+
+    let edgePoints: IWondPoint[] = [];
+    let sizeText = '';
+
+    if (this.selectedNodes.length == 1) {
+      const selectedNode = this.selectedNodes[0];
+
+      const transform = compose([canvasTransform, selectedNode.transform]);
+
+      boundingRectPath.addRect(canvaskit.LTRBRect(0, 0, selectedNode.size.x, selectedNode.size.y));
+      boundingRectPath.transform(getMatrix3x3FromTransform(transform));
+      canvas.drawPath(boundingRectPath, overlayStrokePaint);
+
+      edgePoints = applyToPoints(transform, [
+        { x: 0, y: 0 },
+        { x: selectedNode.size.x, y: 0 },
+        { x: selectedNode.size.x, y: selectedNode.size.y },
+        { x: 0, y: selectedNode.size.y },
+      ]);
+
+      sizeText = `${+selectedNode.size.x.toFixed(2)} x ${+selectedNode.size.y.toFixed(2)}`;
+    } else {
+      let targetSelectionArea: WondBoundingArea | null = null;
+      for (const child of this.selectedNodes) {
+        if (targetSelectionArea === null) {
+          targetSelectionArea = child.getBoundingArea();
+        } else {
+          targetSelectionArea.union(child.getBoundingArea());
+        }
+      }
+
+      if (targetSelectionArea == null) {
+        return;
+      }
+      boundingRectPath.addRect(
+        canvaskit.LTRBRect(
+          targetSelectionArea.left,
+          targetSelectionArea.top,
+          targetSelectionArea.right,
+          targetSelectionArea.bottom,
+        ),
+      );
+      boundingRectPath.transform(getMatrix3x3FromTransform(canvasTransform));
+      canvas.drawPath(boundingRectPath, overlayStrokePaint);
+
+      edgePoints = applyToPoints(canvasTransform, [
+        { x: targetSelectionArea.left, y: targetSelectionArea.top },
+        { x: targetSelectionArea.right, y: targetSelectionArea.top },
+        { x: targetSelectionArea.right, y: targetSelectionArea.bottom },
+        { x: targetSelectionArea.left, y: targetSelectionArea.bottom },
+      ]);
+
+      sizeText = `${targetSelectionArea.getWidth()} x ${targetSelectionArea.getHeight()}`;
+    }
+
+    if (edgePoints.length === 0) {
+      return;
+    }
+
+    const boundingEdges: IWondEdge[] = [];
+    for (let i = 0; i < edgePoints.length; i++) {
+      boundingEdges.push({
+        start: edgePoints[i],
+        end: edgePoints[(i + 1) % edgePoints.length],
+      });
+    }
+
+    let targetEdge: IWondEdge | null = null;
+    let minAngle: number = Infinity;
+    let maxY: number = -Infinity;
+
+    for (const edge of boundingEdges) {
+      const midY = (edge.start.y + edge.end.y) / 2;
+
+      const angle = Math.abs(calculateEdgeAngle(edge));
+      const horizontalAngle = Math.min(angle, Math.PI - angle);
+      if (horizontalAngle < minAngle || (horizontalAngle === minAngle && midY > maxY)) {
+        targetEdge = edge;
+        minAngle = horizontalAngle;
+        maxY = midY;
       }
     }
-    if (targetSelectionArea !== null) {
-      // draw the bounding box
 
-      const selectionColor = canvasKit.Color4f(17 / 255, 152 / 255, 252 / 255, 1.0);
-
-      const borderPaint = new canvasKit.Paint();
-      borderPaint.setColor(selectionColor);
-      borderPaint.setStyle(canvasKit.PaintStyle.Stroke);
-      borderPaint.setAntiAlias(true);
-      const rr = canvasKit.RRectXY(
-        canvasKit.LTRBRect(
-          targetSelectionArea.left - 0.5,
-          targetSelectionArea.top - 0.5,
-          targetSelectionArea.right + 0.5,
-          targetSelectionArea.bottom + 0.5,
-        ),
-        0,
-        0,
-      );
-      canvas.drawRRect(rr, borderPaint);
-
-      const offset = 3.5;
-
-      // draw the four corners
-      const fillPaint = new canvasKit.Paint();
-      fillPaint.setColor(canvasKit.Color4f(1, 1, 1, 1.0));
-      fillPaint.setStyle(canvasKit.PaintStyle.Fill);
-      fillPaint.setAntiAlias(true);
-      // left-top corner
-      const leftTopCorner = canvasKit.RRectXY(
-        canvasKit.LTRBRect(
-          targetSelectionArea.left - offset,
-          targetSelectionArea.top - offset,
-          targetSelectionArea.left + offset,
-          targetSelectionArea.top + offset,
-        ),
-        0,
-        0,
-      );
-      canvas.drawRRect(leftTopCorner, fillPaint);
-      canvas.drawRRect(leftTopCorner, borderPaint);
-
-      // right-top corner
-      const rightTopCorner = canvasKit.RRectXY(
-        canvasKit.LTRBRect(
-          targetSelectionArea.right - offset,
-          targetSelectionArea.top - offset,
-          targetSelectionArea.right + offset,
-          targetSelectionArea.top + offset,
-        ),
-        0,
-        0,
-      );
-      canvas.drawRRect(rightTopCorner, fillPaint);
-      canvas.drawRRect(rightTopCorner, borderPaint);
-
-      // left-bottom corner
-      const leftBottomCorner = canvasKit.RRectXY(
-        canvasKit.LTRBRect(
-          targetSelectionArea.left - offset,
-          targetSelectionArea.bottom - offset,
-          targetSelectionArea.left + offset,
-          targetSelectionArea.bottom + offset,
-        ),
-        0,
-        0,
-      );
-      canvas.drawRRect(leftBottomCorner, fillPaint);
-      canvas.drawRRect(leftBottomCorner, borderPaint);
-
-      // right-bottom corner
-      const rightBottomCorner = canvasKit.RRectXY(
-        canvasKit.LTRBRect(
-          targetSelectionArea.right - offset,
-          targetSelectionArea.bottom - offset,
-          targetSelectionArea.right + offset,
-          targetSelectionArea.bottom + offset,
-        ),
-        0,
-        0,
-      );
-      canvas.drawRRect(rightBottomCorner, fillPaint);
-      canvas.drawRRect(rightBottomCorner, borderPaint);
-
-      // draw the size label
-
-      const fontMgr = canvasKit.FontMgr.FromData(...this.fontData);
-      if (fontMgr) {
-        const paraStyle = new canvasKit.ParagraphStyle({
-          textStyle: {
-            color: canvasKit.WHITE,
-            fontFamilies: ['Roboto'],
-            fontSize: 12,
-          },
-          textAlign: canvasKit.TextAlign.Left,
-        });
-        const text = `${targetSelectionArea.getWidth()} x ${targetSelectionArea.getHeight()}`;
-        const builder = canvasKit.ParagraphBuilder.Make(paraStyle, fontMgr);
-        builder.addText(text);
-        const paragraph = builder.build();
-        paragraph.layout(150);
-
-        const textWidth = paragraph.getMaxIntrinsicWidth();
-        const textHeight = paragraph.getHeight();
-        const textBottomOffset = 10;
-        const textPadding = 3;
-
-        const sizeLabelBgRect = canvasKit.RRectXY(
-          canvasKit.LTRBRect(
-            targetSelectionArea.left + targetSelectionArea.getWidth() / 2 - textWidth / 2 - textPadding,
-            targetSelectionArea.bottom + textBottomOffset - textPadding,
-            targetSelectionArea.left + targetSelectionArea.getWidth() / 2 + textWidth / 2 + textPadding,
-            targetSelectionArea.bottom + textBottomOffset + textHeight + textPadding,
-          ),
-          3,
-          3,
-        );
-        fillPaint.setColor(selectionColor);
-        canvas.drawRRect(sizeLabelBgRect, fillPaint);
-
-        canvas.drawParagraph(
-          paragraph,
-          targetSelectionArea.left + targetSelectionArea.getWidth() / 2 - textWidth / 2,
-          targetSelectionArea.bottom + textBottomOffset,
-        );
-      }
+    if (targetEdge === null) {
+      return;
     }
-  }
 
-  private drawBackgroundLayer(canvasKit: CanvasKit, canvas: Canvas) {
-    this.rootNode.draw(canvasKit, canvas);
-  }
+    const { directionVector, perpVector } = getEdgeVectors(targetEdge);
+    const midPoint = {
+      x: (targetEdge.start.x + targetEdge.end.x) / 2,
+      y: (targetEdge.start.y + targetEdge.end.y) / 2,
+    };
 
-  private drawContentLayer(canvasKit: CanvasKit, canvas: Canvas) {
+    let angle = Math.atan2(directionVector.y, directionVector.x);
+    if (angle > Math.PI / 2 || angle < -Math.PI / 2) {
+      angle += Math.PI;
+
+      perpVector.x = -perpVector.x;
+      perpVector.y = -perpVector.y;
+    }
+
+    const ParagraphStyle = new canvaskit.ParagraphStyle(
+      new canvaskit.ParagraphStyle({
+        textStyle: {
+          color: canvaskit.WHITE,
+          fontFamilies: ['Roboto'],
+          fontSize: 12,
+        },
+        textAlign: canvaskit.TextAlign.Left,
+      }),
+    );
+
+    const builder = canvaskit.ParagraphBuilder.Make(ParagraphStyle, fontMgr);
+    builder.addText(sizeText);
+    const paragraph = builder.build();
+    paragraph.layout(150);
+
+    const textWidth = paragraph.getMaxIntrinsicWidth();
+    const textHeight = paragraph.getHeight();
+
     canvas.save();
-    const viewportMeta = this.coordinateManager.getViewSpaceMeta();
-    canvas.scale(viewportMeta.zoom, viewportMeta.zoom);
-    canvas.translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY);
+    const textOffset = 10;
+    const textPadding = 3;
+    const labelCenter: IWondPoint = {
+      x: midPoint.x + perpVector.x * (textOffset + textHeight / 2),
+      y: midPoint.y + perpVector.y * (textOffset + textHeight / 2),
+    };
 
-    this.rootNode.draw(canvasKit, canvas);
-    for (const child of this.rootNode.children) {
-      child.draw(canvasKit, canvas);
-    }
+    canvas.translate(labelCenter.x, labelCenter.y);
+    canvas.rotate(rad2deg(angle), 0, 0);
 
+    // draw the paragraph bg rect
+    const fillPaint = new canvaskit.Paint();
+    fillPaint.setColor(
+      canvaskit.Color4f(
+        DEFAULT_OVERLAY_COLOR.r / 255,
+        DEFAULT_OVERLAY_COLOR.g / 255,
+        DEFAULT_OVERLAY_COLOR.b / 255,
+        DEFAULT_OVERLAY_COLOR.a,
+      ),
+    );
+    fillPaint.setStyle(canvaskit.PaintStyle.Fill);
+    fillPaint.setAntiAlias(true);
+    const paragraphBgRect = canvaskit.RRectXY(
+      canvaskit.LTRBRect(
+        -textWidth / 2 - textPadding,
+        -textPadding,
+        textWidth / 2 + textPadding,
+        textHeight + textPadding,
+      ),
+      3,
+      3,
+    );
+    canvas.drawRRect(paragraphBgRect, fillPaint);
+
+    // draw size paragraph
+    canvas.drawParagraph(paragraph, -textWidth / 2, 0);
     canvas.restore();
   }
 
-  private drawOverlayLayer(canvasKit: CanvasKit, canvas: Canvas) {
-    this.drawSelections(canvasKit, canvas);
+  private drawBackgroundLayer(context: WondGraphicDrawingContext) {
+    this.rootNode.draw(context);
+  }
+
+  private drawContentLayer(context: WondGraphicDrawingContext) {
+    for (const child of this.rootNode.children) {
+      child.draw(context);
+    }
+  }
+
+  private drawOverlayLayer(context: WondGraphicDrawingContext) {
+    this.drawSelections(context);
   }
 
   private rafDraw() {
-    if (this.canvasKit && this.paintSurface && this.fontData.length > 0) {
-      const drawFrame = (canvas: Canvas) => {
-        this.drawBackgroundLayer(this.canvasKit!, canvas);
+    const { canvaskit, fontMgr } = getCanvasKitContext();
 
-        this.drawContentLayer(this.canvasKit!, canvas);
+    const overlayStrokePaint = new canvaskit.Paint();
 
-        this.drawOverlayLayer(this.canvasKit!, canvas);
+    overlayStrokePaint.setColor(
+      canvaskit.Color4f(
+        DEFAULT_OVERLAY_COLOR.r / 255,
+        DEFAULT_OVERLAY_COLOR.g / 255,
+        DEFAULT_OVERLAY_COLOR.b / 255,
+        DEFAULT_OVERLAY_COLOR.a,
+      ),
+    );
+    overlayStrokePaint.setStyle(canvaskit.PaintStyle.Stroke);
+    overlayStrokePaint.setStrokeWidth(1);
+    overlayStrokePaint.setAntiAlias(true);
 
-        this.paintSurface?.requestAnimationFrame(drawFrame);
+    const drawFrame = (canvas: Canvas) => {
+      const viewportMeta = this.coordinateManager.getViewSpaceMeta();
+      const canvasTransform = compose([
+        scale(viewportMeta.zoom),
+        translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY),
+      ]);
+
+      const context: WondGraphicDrawingContext = {
+        canvaskit,
+        canvas,
+        fontMgr,
+        canvasTransform,
+        overlayStrokePaint,
       };
+      this.drawBackgroundLayer(context);
 
-      this.paintSurface.requestAnimationFrame(drawFrame);
-    }
+      this.drawContentLayer(context);
+
+      this.drawOverlayLayer(context);
+
+      this.paintSurface?.requestAnimationFrame(drawFrame);
+    };
+
+    this.paintSurface?.requestAnimationFrame(drawFrame);
 
     // if (!this.dirtyBoundingArea) {
     //   // draw all the scene
