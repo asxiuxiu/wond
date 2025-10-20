@@ -2,11 +2,24 @@ import type { Canvas, CanvasKit, FontMgr, Paint } from 'canvaskit-wasm';
 import type { Matrix } from 'transformation-matrix';
 
 declare global {
+  interface QueryLocalFontsOptions {
+    postscriptNames?: string[];
+  }
+
+  interface FontData {
+    readonly family: string;
+    readonly fullName: string;
+    readonly postscriptName: string;
+    readonly style: string;
+    blob(): Promise<Blob>;
+  }
+
   interface Window {
     canvaskit_context: {
       canvaskit: CanvasKit;
       fontMgr: FontMgr;
     };
+    queryLocalFonts(options?: QueryLocalFontsOptions): Promise<FontData[]>;
   }
 }
 
