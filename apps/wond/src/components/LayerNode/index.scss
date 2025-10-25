@@ -1,0 +1,30 @@
+.layer-node {
+  display: flex;
+  align-items: center;
+  
+  &.selected {
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      height: 24px;
+      left: 12px;
+      right: 8px;
+      top: 4px;
+      border-radius: 5px;
+      background-color: #e5f4ff;
+      $box-shadow-color: #ffffff00;
+      box-shadow:
+        1px 0 0 $box-shadow-color,
+        -1px 0 0 $box-shadow-color,
+        0 -1px 0 $box-shadow-color,
+        0 1px 0 $box-shadow-color;
+    }
+  }
+
+  .layer-node-indent {
+    position: relative;
+    width: 16px;
+    height: 100%;
+  }
+}

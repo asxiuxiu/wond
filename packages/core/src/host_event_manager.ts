@@ -1,5 +1,6 @@
 import { EventEmitter } from '@wond/common';
 import { MouseEventButton, type IMouseEvent } from './types';
+import type { IWondInternalAPI } from './editor';
 
 interface IHostEvent {
   start(event: IMouseEvent): void;
@@ -16,8 +17,8 @@ export class WondHostEventManager {
 
   private isDragging = false;
 
-  constructor(hostElement: HTMLCanvasElement) {
-    this.hostElement = hostElement;
+  constructor(internalAPI: IWondInternalAPI) {
+    this.hostElement = internalAPI.getCanvasRootElement();
     this.bindEvents();
   }
 

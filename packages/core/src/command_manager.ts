@@ -1,10 +1,10 @@
 import { EventEmitter } from '@wond/common';
 import { type WondOperation } from './operations/operation_base';
 import { WondSceneGraph } from './scene_graph';
+import type { IWondInternalAPI } from './editor';
 
 interface WondCommandPhaseEvent {
-  changeStart(command: WondCommand): void;
-  changeEnd(command: WondCommand): void;
+  onOperationAdd(operations: WondOperation[]): void;
   complete(command: WondCommand): void;
 }
 
@@ -36,10 +36,13 @@ export class WondCommand {
     this.eventEmitter.clearAll();
   };
 
+  addOperations = (operations: WondOperation[]) => {
+    this.eventEmitter.emit('onOperationAdd', operations);
+    this.operations.push(...operations);
+  };
+
   setOperations = (operations: WondOperation[]) => {
-    this.eventEmitter.emit('changeStart', this);
     this.operations = operations;
-    this.eventEmitter.emit('changeEnd', this);
   };
 
   on = (event: keyof WondCommandPhaseEvent, callback: WondCommandPhaseEvent[keyof WondCommandPhaseEvent]) => {
@@ -53,9 +56,9 @@ export class WondCommandManager {
 
   private activeCommand: WondCommand | null = null;
 
-  private sceneGraph: WondSceneGraph;
-  constructor(sceneGraph: WondSceneGraph) {
-    this.sceneGraph = sceneGraph;
+  private readonly sceneGraph: WondSceneGraph;
+  constructor(internalAPI: IWondInternalAPI) {
+    this.sceneGraph = internalAPI.getSceneGraph();
   }
 
   public executeCommand = (command: WondCommand) => {
@@ -65,16 +68,16 @@ export class WondCommandManager {
     }
 
     this.activeCommand = command;
-    this.activeCommand.on('complete', (command) => {
+    this.activeCommand.on('onOperationAdd', (operations: WondOperation[]) => {
+      operations.forEach((operation) => {
+        operation.execute(this.sceneGraph);
+      });
+    });
+
+    this.activeCommand.on('complete', (command: WondCommand) => {
       this.undoStack.push(command);
       this.redoStack = [];
       this.activeCommand = null;
-    });
-    this.activeCommand.on('changeStart', (command) => {
-      command.undo(this.sceneGraph);
-    });
-    this.activeCommand.on('changeEnd', (command) => {
-      command.execute(this.sceneGraph);
     });
   };
 

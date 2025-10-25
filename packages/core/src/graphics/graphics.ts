@@ -1,5 +1,3 @@
-import { getUuid } from '@wond/common';
-import { ZERO_BOUNDING_AREA } from '../constants';
 import { WondBoundingArea } from '../geo';
 import type { Matrix } from 'transformation-matrix';
 import type { WondGraphicDrawingContext } from '../types';
@@ -13,29 +11,27 @@ export const GraphicsType = {
 
 export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
 
-export class WondGraphics {
+export interface WondGraphicsAttrs {
   id: string;
-  type: GraphicsType = GraphicsType.Graph;
-  name = '';
-  transform: Matrix = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
-  visible = true;
-  size: { x: number; y: number } = { x: 0, y: 0 };
+  type: GraphicsType;
+  name: string;
+  transform: Matrix;
+  visible: boolean;
+  locked: boolean;
+  size: { x: number; y: number };
   children?: WondGraphics[];
+}
 
-  constructor(attrs: Partial<Omit<WondGraphics, 'id' | 'type'>>) {
-    this.id = getUuid();
-    Object.assign(this, attrs);
-  }
+export interface WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> {
+  type: GraphicsType;
+  attrs: T;
+  parentId?: string;
 
-  public getBoundingArea(): WondBoundingArea {
-    return ZERO_BOUNDING_AREA;
-  }
+  getBoundingArea(): WondBoundingArea;
 
-  public getSvgString() {
-    return '';
-  }
+  getSvgString(): string;
 
-  public draw(context: WondGraphicDrawingContext) {}
+  draw(context: WondGraphicDrawingContext): void;
 
-  public drawOutline(context: WondGraphicDrawingContext) {}
+  drawOutline(context: WondGraphicDrawingContext): void;
 }

@@ -1,0 +1,13 @@
+.layers {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.9);
+
+  .layers-content {
+    flex: 1;
+    overflow: hidden;
+  }
+}

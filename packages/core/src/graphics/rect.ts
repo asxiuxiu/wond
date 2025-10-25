@@ -1,4 +1,4 @@
-import { GraphicsType, WondGraphics } from './graphics';
+import { GraphicsType, type WondGraphicsAttrs, type WondGraphics } from './graphics';
 import { WondBoundingArea } from '../geo';
 import { applyToPoint } from 'transformation-matrix';
 import type { WondGraphicDrawingContext } from '../types';
@@ -6,21 +6,25 @@ import { DEFAULT_FILL_COLOR } from '../constants';
 import { getMatrix3x3FromTransform } from '../utils';
 import { getCanvasKitContext } from '../context';
 import type { CanvasKit } from 'canvaskit-wasm';
+import { getUuid } from '@wond/common';
 
-export class WondRect extends WondGraphics {
+export interface WondRectAttrs extends WondGraphicsAttrs {}
+
+export class WondRect implements WondGraphics<WondRectAttrs> {
   type: GraphicsType = GraphicsType.Rectangle;
-
+  attrs: WondRectAttrs;
   private _cachePath = '';
 
-  constructor(attrs: Partial<Omit<WondRect, 'id' | 'type'>>) {
-    super(attrs);
+  constructor(attrs: Omit<WondRectAttrs, 'id' | 'type'>) {
+    this.attrs = { ...attrs, id: getUuid(), type: this.type } as WondRectAttrs;
+    this.attrs.size = attrs.size || { x: 0, y: 0 };
   }
 
   getBoundingArea(): WondBoundingArea {
-    const left_top = applyToPoint(this.transform, { x: 0, y: 0 });
-    const right_top = applyToPoint(this.transform, { x: this.size.x, y: 0 });
-    const left_bottom = applyToPoint(this.transform, { x: 0, y: this.size.y });
-    const right_bottom = applyToPoint(this.transform, { x: this.size.x, y: this.size.y });
+    const left_top = applyToPoint(this.attrs.transform, { x: 0, y: 0 });
+    const right_top = applyToPoint(this.attrs.transform, { x: this.attrs.size.x, y: 0 });
+    const left_bottom = applyToPoint(this.attrs.transform, { x: 0, y: this.attrs.size.y });
+    const right_bottom = applyToPoint(this.attrs.transform, { x: this.attrs.size.x, y: this.attrs.size.y });
     return new WondBoundingArea(
       Math.min(left_top.x, right_top.x, left_bottom.x, right_bottom.x),
       Math.max(left_top.x, right_top.x, left_bottom.x, right_bottom.x),
@@ -41,8 +45,8 @@ export class WondRect extends WondGraphics {
 
   private getShapePath(canvaskit: CanvasKit) {
     const path = new canvaskit.Path();
-    path.addRect(canvaskit.LTRBRect(0, 0, this.size.x, this.size.y));
-    path.transform(getMatrix3x3FromTransform(this.transform));
+    path.addRect(canvaskit.LTRBRect(0, 0, this.attrs.size.x, this.attrs.size.y));
+    path.transform(getMatrix3x3FromTransform(this.attrs.transform));
     this._cachePath = path.toSVGString();
     return path;
   }
