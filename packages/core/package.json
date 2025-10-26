@@ -16,9 +16,11 @@
   "dependencies": {
     "@wond/common": "workspace:*",
     "canvaskit-wasm": "^0.40.0",
+    "rbush": "^4.0.1",
     "transformation-matrix": "^3.0.0"
   },
   "devDependencies": {
+    "@types/rbush": "^4.0.0",
     "rollup-plugin-copy": "^3.5.0"
   }
 }

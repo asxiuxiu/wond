@@ -1,32 +1,34 @@
 import { type Canvas, type Surface } from 'canvaskit-wasm';
 import { WondDocument } from './graphics/document';
 import { DEFAULT_OVERLAY_COLOR as DEFAULT_OVERLAY_COLOR, ZERO_BOUNDING_AREA } from './constants';
-import type { WondGraphics } from './graphics/graphics';
 import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
-import type { WondCoordinateManager } from './coordinate_manager';
 import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
 import { applyToPoints, compose, scale, translate } from 'transformation-matrix';
 import { getMatrix3x3FromTransform } from './utils';
 import { getCanvasKitContext } from './context';
+import type { IWondInternalAPI } from './editor';
+import type { WondGraphics } from './graphics';
+import { throttle } from '@wond/common';
+import RBush from 'rbush';
 
 export class WondSceneGraph {
+  private readonly internalAPI: IWondInternalAPI;
   private readonly rootNode: WondDocument;
-  private readonly selectedNodes: WondGraphics[] = [];
-  private readonly coordinateManager: WondCoordinateManager;
+  private readonly selectedNodeIds: Set<string> = new Set();
+  private readonly nodesMap: Map<string, WondGraphics> = new Map();
+  private readonly rTree = new RBush<WondGraphics>();
 
   private paintSurface: Surface | null = null;
 
   private dirtyBoundingArea: WondBoundingArea | null = null;
 
-  constructor(paintElement: HTMLCanvasElement, coordinateManager: WondCoordinateManager) {
+  constructor(internalAPI: IWondInternalAPI) {
+    this.internalAPI = internalAPI;
     this.rootNode = new WondDocument({
-      name: 'rootPage',
-      visible: true,
-      children: [],
+      name: 'Page1',
     });
-    this.coordinateManager = coordinateManager;
 
-    this.initPaint(paintElement);
+    this.initPaint(internalAPI.getCanvasRootElement());
   }
 
   private initPaint(canvasElement: HTMLCanvasElement) {
@@ -44,15 +46,51 @@ export class WondSceneGraph {
   }
 
   public getSelections() {
-    return [...this.selectedNodes];
+    return new Set(this.selectedNodeIds);
   }
 
-  public addSelections(nodes: WondGraphics[]) {
-    this.selectedNodes.push(...nodes);
+  public addSelection(nodeId: string) {
+    this.selectedNodeIds.add(nodeId);
+    this.markLayerTreeDirty();
+  }
+
+  public deleteSelection(nodeId: string) {
+    this.selectedNodeIds.delete(nodeId);
+    this.markLayerTreeDirty();
   }
 
   public clearSelection() {
-    this.selectedNodes.length = 0;
+    this.selectedNodeIds.clear();
+    this.markLayerTreeDirty();
+  }
+
+  public getNodeById(id: string) {
+    return this.nodesMap.get(id);
+  }
+
+  public registerNode(node: WondGraphics) {
+    this.nodesMap.set(node.attrs.id, node);
+  }
+
+  insertNodeIntoRTree(node: WondGraphics) {
+    this.rTree.insert(node);
+  }
+
+  removeNodeFromRTree(node: WondGraphics) {
+    this.rTree.remove(node);
+  }
+
+  pickNodesAtPoint(point: IWondPoint): WondGraphics[] {
+    return this.rTree.search({
+      minX: point.x,
+      minY: point.y,
+      maxX: point.x,
+      maxY: point.y,
+    });
+  }
+
+  public unregisterNode(node: WondGraphics) {
+    this.nodesMap.delete(node.attrs.id);
   }
 
   public markDirtyArea(area: WondBoundingArea) {
@@ -66,14 +104,23 @@ export class WondSceneGraph {
     }
   }
 
+  public markLayerTreeDirty() {
+    this.internalAPI.emitEvent('onLayoutDirty');
+  }
+
+  public throttleMarkLayerTreeDirty = throttle(() => this.markLayerTreeDirty(), 500, { trailing: true });
+
   private drawSelections(context: WondGraphicDrawingContext) {
-    if (this.selectedNodes.length === 0) {
+    const selectedNodeIds = Array.from(this.selectedNodeIds);
+    if (selectedNodeIds.length === 0) {
       return;
     }
 
+    const selectedNodes = selectedNodeIds.map((id) => this.getNodeById(id)).filter((node) => node !== undefined);
+
     const { canvaskit, canvas, fontMgr, canvasTransform, overlayStrokePaint } = context;
 
-    for (const child of this.selectedNodes) {
+    for (const child of selectedNodes) {
       child.drawOutline(context);
     }
 
@@ -82,26 +129,26 @@ export class WondSceneGraph {
     let edgePoints: IWondPoint[] = [];
     let sizeText = '';
 
-    if (this.selectedNodes.length == 1) {
-      const selectedNode = this.selectedNodes[0];
+    if (selectedNodeIds.length == 1) {
+      const selectedNode = selectedNodes[0];
 
-      const transform = compose([canvasTransform, selectedNode.transform]);
+      const transform = compose([canvasTransform, selectedNode.attrs.transform]);
 
-      boundingRectPath.addRect(canvaskit.LTRBRect(0, 0, selectedNode.size.x, selectedNode.size.y));
+      boundingRectPath.addRect(canvaskit.LTRBRect(0, 0, selectedNode.attrs.size.x, selectedNode.attrs.size.y));
       boundingRectPath.transform(getMatrix3x3FromTransform(transform));
       canvas.drawPath(boundingRectPath, overlayStrokePaint);
 
       edgePoints = applyToPoints(transform, [
         { x: 0, y: 0 },
-        { x: selectedNode.size.x, y: 0 },
-        { x: selectedNode.size.x, y: selectedNode.size.y },
-        { x: 0, y: selectedNode.size.y },
+        { x: selectedNode.attrs.size.x, y: 0 },
+        { x: selectedNode.attrs.size.x, y: selectedNode.attrs.size.y },
+        { x: 0, y: selectedNode.attrs.size.y },
       ]);
 
-      sizeText = `${+selectedNode.size.x.toFixed(2)} x ${+selectedNode.size.y.toFixed(2)}`;
+      sizeText = `${+selectedNode.attrs.size.x.toFixed(2)} x ${+selectedNode.attrs.size.y.toFixed(2)}`;
     } else {
       let targetSelectionArea: WondBoundingArea | null = null;
-      for (const child of this.selectedNodes) {
+      for (const child of selectedNodes) {
         if (targetSelectionArea === null) {
           targetSelectionArea = child.getBoundingArea();
         } else {
@@ -243,7 +290,7 @@ export class WondSceneGraph {
   }
 
   private drawContentLayer(context: WondGraphicDrawingContext) {
-    for (const child of this.rootNode.children) {
+    for (const child of this.rootNode.attrs.children) {
       child.draw(context);
     }
   }
@@ -270,7 +317,7 @@ export class WondSceneGraph {
     overlayStrokePaint.setAntiAlias(true);
 
     const drawFrame = (canvas: Canvas) => {
-      const viewportMeta = this.coordinateManager.getViewSpaceMeta();
+      const viewportMeta = this.internalAPI.getCoordinateManager().getViewSpaceMeta();
       const canvasTransform = compose([
         scale(viewportMeta.zoom),
         translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY),

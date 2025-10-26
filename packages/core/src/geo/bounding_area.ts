@@ -1,51 +1,60 @@
 export class WondBoundingArea {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
 
-    constructor(left: number, right: number, top: number, bottom: number) {
-        this.left = left;
-        this.right = right;
-        this.top = top;
-        this.bottom = bottom;
-    }
+  constructor(left: number = 0, right: number = 0, top: number = 0, bottom: number = 0) {
+    this.left = left;
+    this.right = right;
+    this.top = top;
+    this.bottom = bottom;
+  }
 
-    union(area: WondBoundingArea) {
-        this.left = Math.min(this.left, area.left);
-        this.right = Math.max(this.right, area.right);
-        this.top = Math.min(this.top, area.top);
-        this.bottom = Math.max(this.bottom, area.bottom);
-    }
+  set(left: number, right: number, top: number, bottom: number) {
+    this.left = left;
+    this.right = right;
+    this.top = top;
+    this.bottom = bottom;
+  }
 
-    intersect(area: WondBoundingArea) {
-        this.left = Math.max(this.left, area.left);
-        this.right = Math.min(this.right, area.right);
-        this.top = Math.max(this.top, area.top);
-        this.bottom = Math.min(this.bottom, area.bottom);
-    }
+  union(area: WondBoundingArea): WondBoundingArea {
+    const left = Math.min(this.left, area.left);
+    const right = Math.max(this.right, area.right);
+    const top = Math.min(this.top, area.top);
+    const bottom = Math.max(this.bottom, area.bottom);
+    return new WondBoundingArea(left, right, top, bottom);
+  }
 
-    contains(area: WondBoundingArea) {
-        return this.left <= area.left && this.right >= area.right && this.top <= area.top && this.bottom >= area.bottom;
-    }
+  intersect(area: WondBoundingArea): WondBoundingArea {
+    const left = Math.max(this.left, area.left);
+    const right = Math.min(this.right, area.right);
+    const top = Math.max(this.top, area.top);
+    const bottom = Math.min(this.bottom, area.bottom);
+    return new WondBoundingArea(left, right, top, bottom);
+  }
 
-    isEmpty() {
-        return this.left >= this.right || this.top >= this.bottom;
-    }
+  contains(area: WondBoundingArea) {
+    return this.left <= area.left && this.right >= area.right && this.top <= area.top && this.bottom >= area.bottom;
+  }
 
-    getWidth() {
-        return this.right - this.left;
-    }
+  isEmpty() {
+    return this.left >= this.right || this.top >= this.bottom;
+  }
 
-    getHeight() {
-        return this.bottom - this.top;
-    }
+  getWidth() {
+    return this.right - this.left;
+  }
 
-    getArea() {
-        return (this.right - this.left) * (this.bottom - this.top);
-    }
+  getHeight() {
+    return this.bottom - this.top;
+  }
 
-    getCenter() {
-        return { x: (this.left + this.right) / 2, y: (this.top + this.bottom) / 2 };
-    }
+  getArea() {
+    return (this.right - this.left) * (this.bottom - this.top);
+  }
+
+  getCenter() {
+    return { x: (this.left + this.right) / 2, y: (this.top + this.bottom) / 2 };
+  }
 }

@@ -1,11 +1,13 @@
 import { EventEmitter } from '@wond/common';
 import { MouseEventButton, type IMouseEvent } from './types';
+import type { IWondInternalAPI } from './editor';
 
 interface IHostEvent {
   start(event: IMouseEvent): void;
   move(event: IMouseEvent): void;
   drag(event: IMouseEvent): void;
   end(event: IMouseEvent): void;
+  click(event: IMouseEvent): void;
   contextmenu(event: IMouseEvent): void;
   wheel(event: IMouseEvent): void;
 }
@@ -16,8 +18,8 @@ export class WondHostEventManager {
 
   private isDragging = false;
 
-  constructor(hostElement: HTMLCanvasElement) {
-    this.hostElement = hostElement;
+  constructor(internalAPI: IWondInternalAPI) {
+    this.hostElement = internalAPI.getCanvasRootElement();
     this.bindEvents();
   }
 
@@ -27,6 +29,7 @@ export class WondHostEventManager {
     document.addEventListener('pointerup', this.onPointerUp);
     document.addEventListener('contextmenu', this.onContextMenu);
     document.addEventListener('wheel', this.onWheel, { passive: false });
+    document.addEventListener('click', this.onClick);
   }
 
   clear() {
@@ -35,7 +38,24 @@ export class WondHostEventManager {
     document.removeEventListener('pointerup', this.onPointerUp);
     document.removeEventListener('contextmenu', this.onContextMenu);
     document.removeEventListener('wheel', this.onWheel);
+    document.removeEventListener('click', this.onClick);
   }
+
+  private onClick = (event: MouseEvent) => {
+    if (event.target !== this.hostElement) {
+      return;
+    }
+    event.preventDefault();
+    this.eventEmitter.emit('click', {
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      button: event.button,
+      nativeEvent: event,
+    });
+  };
 
   private onWheel = (event: WheelEvent) => {
     if (event.target !== this.hostElement) {

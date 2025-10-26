@@ -4,6 +4,7 @@
   position: relative;
   width: 285px;
   height: 100%;
-  background-color: #fff;
+  background-color: $panel-color;
+  box-sizing: border-box;
   border-right: 1px solid $panel-border-color;
 }

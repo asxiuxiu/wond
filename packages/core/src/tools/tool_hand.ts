@@ -1,41 +1,39 @@
 import { ToolBase } from './tool_base';
 import { type IMouseEvent } from '../types';
 import { type IWondPoint } from '../types';
-import type { WondEditor } from '../editor';
+import type { IWondInternalAPI } from '../editor';
 import type { ViewSpaceMeta } from '../coordinate_manager';
 
 export class ToolHand extends ToolBase {
   private startPoint: IWondPoint | null = null;
   private originalViewSpaceMeta: ViewSpaceMeta | null = null;
 
-  onStart = (event: IMouseEvent, editor: WondEditor) => {
-    this.originalViewSpaceMeta = { ...editor.coordinateManager.getViewSpaceMeta() };
-    this.startPoint = editor.coordinateManager.screenCoordsToSceneCoords(
-      { x: event.clientX, y: event.clientY },
-      this.originalViewSpaceMeta,
-    );
+  onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+    this.originalViewSpaceMeta = { ...internalAPI.getCoordinateManager().getViewSpaceMeta() };
+    this.startPoint = internalAPI
+      .getCoordinateManager()
+      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
   };
-  onDrag = (event: IMouseEvent, editor: WondEditor) => {
-    this.onDragScene(event, editor);
-  };
-
-  onEnd = (event: IMouseEvent, editor: WondEditor) => {
-    this.onDragScene(event, editor);
+  onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+    this.onDragScene(event, internalAPI);
   };
 
-  private onDragScene = (event: IMouseEvent, editor: WondEditor) => {
+  onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+    this.onDragScene(event, internalAPI);
+  };
+
+  private onDragScene = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     if (!this.startPoint) return;
-    const endPoint = editor.coordinateManager.screenCoordsToSceneCoords(
-      { x: event.clientX, y: event.clientY },
-      this.originalViewSpaceMeta,
-    );
+    const endPoint = internalAPI
+      .getCoordinateManager()
+      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
 
     const delta = {
       x: endPoint.x - this.startPoint.x,
       y: endPoint.y - this.startPoint.y,
     };
 
-    editor.coordinateManager.updateViewSpaceMeta({
+    internalAPI.getCoordinateManager().updateViewSpaceMeta({
       sceneScrollX: this.originalViewSpaceMeta!.sceneScrollX + delta.x,
       sceneScrollY: this.originalViewSpaceMeta!.sceneScrollY + delta.y,
     });

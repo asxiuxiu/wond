@@ -1,5 +1,6 @@
+import type { IWondInternalAPI } from './editor';
 import type { IWondPoint } from './types';
-import { applyToPoint, compose, inverse, scale, translate } from 'transformation-matrix';
+import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
 
 export interface ViewSpaceMeta {
   viewportOffsetX: number;
@@ -10,7 +11,7 @@ export interface ViewSpaceMeta {
 }
 
 export class WondCoordinateManager {
-  private canvasElement: HTMLCanvasElement;
+  private readonly canvasElement: HTMLCanvasElement;
 
   private viewSpaceMeta: ViewSpaceMeta = {
     viewportOffsetX: 0,
@@ -20,8 +21,8 @@ export class WondCoordinateManager {
     zoom: 1,
   };
 
-  constructor(canvasElement: HTMLCanvasElement) {
-    this.canvasElement = canvasElement;
+  constructor(internalAPI: IWondInternalAPI) {
+    this.canvasElement = internalAPI.getCanvasRootElement();
     this.initViewportMeta();
   }
 

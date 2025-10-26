@@ -1,4 +1,4 @@
-import type { WondEditor } from '../editor';
+import type { IWondInternalAPI } from '../editor';
 import { MouseEventButton, type IMouseEvent } from '../types';
 import { type ToolBase } from './tool_base';
 import { ToolDrawRect } from './tool_draw_rect';
@@ -8,15 +8,15 @@ import { WondToolType } from './types';
 
 export class WondToolManager {
   private activeToolStack: ToolBase[] = [];
-  private editor: WondEditor;
+  private readonly internalAPI: IWondInternalAPI;
   private tools: Record<WondToolType, ToolBase> = {
     [WondToolType.DrawRect]: new ToolDrawRect(),
     [WondToolType.Hand]: new ToolHand(),
     [WondToolType.Move]: new ToolMove(),
   };
 
-  constructor(editor: WondEditor) {
-    this.editor = editor;
+  constructor(internalAPI: IWondInternalAPI) {
+    this.internalAPI = internalAPI;
   }
 
   getActiveTool(): ToolBase {
@@ -45,21 +45,21 @@ export class WondToolManager {
       this.pushActiveTool(WondToolType.Hand);
     }
 
-    this.getActiveTool().onStart(event, this.editor);
+    this.getActiveTool().onStart(event, this.internalAPI);
   };
 
   onDrag = (event: IMouseEvent) => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
-    this.getActiveTool().onDrag(event, this.editor);
+    this.getActiveTool().onDrag(event, this.internalAPI);
   };
 
   onMove = (event: IMouseEvent) => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
-    this.getActiveTool().onMove(event, this.editor);
+    this.getActiveTool().onMove(event, this.internalAPI);
   };
 
   onEnd = (event: IMouseEvent) => {
@@ -69,7 +69,7 @@ export class WondToolManager {
     if (event.button === MouseEventButton.Middle) {
       this.popActiveTool(WondToolType.Hand);
     }
-    this.getActiveTool().onEnd(event, this.editor);
+    this.getActiveTool().onEnd(event, this.internalAPI);
   };
 
   onContextMenu = (event: IMouseEvent) => {

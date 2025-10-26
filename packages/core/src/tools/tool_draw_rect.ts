@@ -1,54 +1,93 @@
 import { ToolBase } from './tool_base';
 import { WondCommand } from '../command_manager';
-import { WondRect } from '../graphics/rect';
+import { WondRect, type WondRectAttrs } from '../graphics/rect';
 import { type IMouseEvent } from '../types';
 import { type IWondPoint } from '../types';
-import type { WondEditor } from '../editor';
+import type { IWondInternalAPI } from '../editor';
 import { WondAddNodeOperation, WondUpdateSelectionOperation } from '../operations';
+import { WondUpdatePropertyOperation } from '../operations/update_property_operation';
 
 export class ToolDrawRect extends ToolBase {
   private startPoint: IWondPoint | null = null;
   private endPoint: IWondPoint | null = null;
   private command: WondCommand | null = null;
 
-  onStart = (event: IMouseEvent, editor: WondEditor) => {
-    this.startPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+  private drawingRect: WondRect | null = null;
+
+  private static index_generator = 0;
+  private static getNewKey() {
+    return ++this.index_generator;
+  }
+
+  onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+    this.startPoint = internalAPI
+      .getCoordinateManager()
+      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
   };
 
-  onDrag = (event: IMouseEvent, editor: WondEditor) => {
-    if (!this.startPoint) return;
-    this.endPoint = editor.coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
-    // calculate the rect by the bounding box. can be other shape
-
-    if (!this.command) {
-      this.command = new WondCommand();
-      editor.commandManager.executeCommand(this.command);
-    }
-    const newRect = new WondRect({
-      name: 'rect1',
-      visible: true,
-      size: { x: Math.abs(this.endPoint.x - this.startPoint.x), y: Math.abs(this.endPoint.y - this.startPoint.y) },
+  private getTargetRectProperty(startPoint: IWondPoint, endPoint: IWondPoint) {
+    const newProperty = {
+      size: {
+        x: Math.round(Math.abs(endPoint.x - startPoint.x)),
+        y: Math.round(Math.abs(endPoint.y - startPoint.y)),
+      },
       transform: {
         a: 1,
         b: 0,
         c: 0,
         d: 1,
-        e: Math.min(this.startPoint.x, this.endPoint.x),
-        f: Math.min(this.startPoint.y, this.endPoint.y),
+        e: Math.round(Math.min(startPoint.x, endPoint.x)),
+        f: Math.round(Math.min(startPoint.y, endPoint.y)),
       },
-    });
-    const newAddRectOperation = new WondAddNodeOperation([0], newRect);
+    };
 
-    const selectionOperation = new WondUpdateSelectionOperation([newRect]);
+    return newProperty;
+  }
 
-    this.command.setOperations([newAddRectOperation, selectionOperation]);
+  onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+    if (!this.startPoint) return;
+    this.endPoint = internalAPI
+      .getCoordinateManager()
+      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    // calculate the rect by the bounding box. can be other shape
+
+    if (!this.command) {
+      this.command = new WondCommand();
+      internalAPI.getCommandManager().executeCommand(this.command);
+    }
+
+    const newProperty = this.getTargetRectProperty(this.startPoint, this.endPoint);
+
+    if (!this.drawingRect) {
+      this.drawingRect = new WondRect({
+        name: `Rectangle ${ToolDrawRect.getNewKey()}`,
+        visible: true,
+        locked: false,
+        ...newProperty,
+      });
+
+      const newAddRectOperation = new WondAddNodeOperation([0], this.drawingRect);
+
+      const selectionOperation = new WondUpdateSelectionOperation(new Set([this.drawingRect.attrs.id]));
+      this.command.addOperations([newAddRectOperation, selectionOperation]);
+    } else {
+      const updateRectOperation = new WondUpdatePropertyOperation<WondRectAttrs>(this.drawingRect, newProperty);
+      this.command.addOperations([updateRectOperation]);
+    }
   };
 
-  onEnd = (event: IMouseEvent, editor: WondEditor) => {
+  onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     if (this.command) {
+      if (this.drawingRect) {
+        this.command.setOperations([
+          new WondAddNodeOperation([0], this.drawingRect),
+          new WondUpdateSelectionOperation(new Set([this.drawingRect.attrs.id])),
+        ]);
+      }
       this.command.complete();
       this.command = null;
-      console.log('command complete', editor.sceneGraph);
     }
+
+    this.drawingRect = null;
   };
 }
