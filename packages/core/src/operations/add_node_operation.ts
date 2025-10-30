@@ -1,14 +1,15 @@
 import { type WondGraphics } from '../graphics/graphics';
-import { type WondOperation } from './operation_base';
+import { WondOperation } from './operation_base';
 import { WondDocument } from '../graphics/document';
 import { WondSceneGraph } from '../scene_graph';
 import { WondBoundingArea } from '../geo';
 
-export class WondAddNodeOperation implements WondOperation {
+export class WondAddNodeOperation extends WondOperation {
   coordinates: number[];
   newNode: WondGraphics;
 
   constructor(coordinates: number[], newNode: WondGraphics) {
+    super();
     if (coordinates.length === 0) {
       console.warn('[WondAddOperation:constructor] coordinates length is 0, this operation will be invalid');
     }
@@ -50,6 +51,7 @@ export class WondAddNodeOperation implements WondOperation {
       this.newNode.parentId = targetCoordinatesParentNode.attrs.id;
       sceneGraph.registerNode(this.newNode);
       sceneGraph.insertNodeIntoRTree(this.newNode);
+      sceneGraph.markLayerTreeDirty();
     }
   };
 
@@ -67,9 +69,10 @@ export class WondAddNodeOperation implements WondOperation {
 
     sceneGraph.unregisterNode(this.newNode);
     sceneGraph.removeNodeFromRTree(this.newNode);
+    sceneGraph.markLayerTreeDirty();
   };
 
-  getDirtyBoundingArea(): WondBoundingArea {
+  getDirtyBoundingArea = (): WondBoundingArea => {
     return this.newNode.getBoundingArea();
-  }
+  };
 }

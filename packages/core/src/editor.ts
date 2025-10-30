@@ -6,6 +6,7 @@ import { WondToolManager, type WondToolType } from './tools';
 import type { WondGraphics } from './graphics';
 import { EventEmitter } from '@wond/common';
 import { WondUpdateSelectionOperation } from './operations';
+import { WondKeybindingManager } from './keybinding_manager';
 
 export interface IWondEditorEvent {
   onLayoutDirty(): void;
@@ -36,6 +37,7 @@ export class WondEditor {
   #commandManager: WondCommandManager;
   #coordinateManager: WondCoordinateManager;
   #toolManager: WondToolManager;
+  #keybindingManager: WondKeybindingManager;
 
   private readonly eventEmitter = new EventEmitter<IWondEditorEvent>();
 
@@ -70,10 +72,12 @@ export class WondEditor {
     this.#sceneGraph = new WondSceneGraph(this.#internalAPI);
     this.#commandManager = new WondCommandManager(this.#internalAPI);
     this.#toolManager = new WondToolManager(this.#internalAPI);
-    this.initBindings();
+    this.#keybindingManager = new WondKeybindingManager(this.#internalAPI);
+    this.bindHostEvents();
+    this.bindKeybindings();
   }
 
-  initBindings() {
+  bindHostEvents() {
     // hostEventManager => toolManager
     this.#hostEventManager.on('start', this.#toolManager.onStart);
     this.#hostEventManager.on('move', this.#toolManager.onMove);
@@ -84,6 +88,17 @@ export class WondEditor {
       if (event.ctrlKey) {
         this.#coordinateManager.scaleByStep(event.deltaY! > 0 ? 1 : -1, { x: event.clientX, y: event.clientY });
       }
+    });
+  }
+
+  bindKeybindings() {
+    this.#keybindingManager.registerKeybinding({
+      key: { keyCode: 'KeyZ', ctrlKey: true },
+      action: () => this.#commandManager.undo(),
+    });
+    this.#keybindingManager.registerKeybinding({
+      key: { keyCode: 'KeyY', ctrlKey: true },
+      action: () => this.#commandManager.redo(),
     });
   }
 
@@ -112,6 +127,11 @@ export class WondEditor {
   }
 
   public setSelections(nodeIds: string[]) {
+    const needSelectNodes = nodeIds.filter((nodeId) => !this.#sceneGraph.getSelections().has(nodeId));
+    if (needSelectNodes.length === 0) {
+      return;
+    }
+
     const command = new WondCommand();
     this.#commandManager.executeCommand(command);
     command.addOperations([new WondUpdateSelectionOperation(new Set(nodeIds))]);
@@ -119,7 +139,7 @@ export class WondEditor {
   }
 
   public toggleSelection(nodeId: string) {
-    const selections = this.#sceneGraph.getSelections();
+    const selections = new Set(this.#sceneGraph.getSelections());
     if (selections.has(nodeId)) {
       selections.delete(nodeId);
     } else {
@@ -141,5 +161,10 @@ export class WondEditor {
 
   public off(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]) {
     this.eventEmitter.off(event, callback);
+  }
+
+  public clear() {
+    this.#hostEventManager.clear();
+    this.#keybindingManager.clear();
   }
 }

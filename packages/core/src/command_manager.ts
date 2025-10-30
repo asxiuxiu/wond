@@ -15,8 +15,8 @@ export class WondCommand {
   private operations: WondOperation[] = [];
   private eventEmitter = new EventEmitter<WondCommandPhaseEvent>();
 
-  public getOperationSize() {
-    return this.operations.length;
+  public getOperations() {
+    return this.operations;
   }
 
   public execute = (sceneGraph: WondSceneGraph) => {

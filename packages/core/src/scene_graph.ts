@@ -108,7 +108,7 @@ export class WondSceneGraph {
   }
 
   public getSelections() {
-    return new Set(this.selectedNodeIds);
+    return this.selectedNodeIds;
   }
 
   public getSelectionsBoundingArea(): Readonly<WondBoundingArea | null> {

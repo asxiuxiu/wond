@@ -74,16 +74,13 @@ export class ToolDrawRect extends ToolBase {
       const updateRectOperation = new WondUpdatePropertyOperation<WondRectAttrs>(this.drawingRect, newProperty);
       this.command.addOperations([updateRectOperation]);
     }
+
+    // compress the operation
+    this.command.setOperations(this.command.getOperations().slice(0, 2));
   };
 
   onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     if (this.command) {
-      if (this.drawingRect) {
-        this.command.setOperations([
-          new WondAddNodeOperation([0], this.drawingRect),
-          new WondUpdateSelectionOperation(new Set([this.drawingRect.attrs.id])),
-        ]);
-      }
       this.command.complete();
       this.command = null;
     }

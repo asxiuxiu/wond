@@ -1,18 +1,20 @@
-import { type WondOperation } from './operation_base';
+import { WondOperation } from './operation_base';
 import { WondSceneGraph } from '../scene_graph';
 import { ZERO_BOUNDING_AREA } from '../constants';
 import { WondBoundingArea } from '../geo';
 
-export class WondUpdateSelectionOperation implements WondOperation {
+export class WondUpdateSelectionOperation extends WondOperation {
   targetSelectionNodeIds: Set<string> = new Set();
   originSelectionNodeIds: Set<string> = new Set();
 
   constructor(selectedNodes: Set<string>) {
+    super();
     this.targetSelectionNodeIds = selectedNodes;
   }
 
   execute = (sceneGraph: WondSceneGraph) => {
     this.originSelectionNodeIds = new Set(sceneGraph.getSelections());
+
     for (const nodeId of this.targetSelectionNodeIds) {
       if (!this.originSelectionNodeIds.has(nodeId)) {
         sceneGraph.addSelection(nodeId);
@@ -40,7 +42,7 @@ export class WondUpdateSelectionOperation implements WondOperation {
     }
   };
 
-  getDirtyBoundingArea(): WondBoundingArea {
+  getDirtyBoundingArea = (): WondBoundingArea => {
     return ZERO_BOUNDING_AREA;
-  }
+  };
 }

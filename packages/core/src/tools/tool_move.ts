@@ -42,7 +42,9 @@ export class ToolMove extends ToolBase {
       if (currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
         this.isModifyingSelection = true;
       } else {
-        this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(new Set())]);
+        if (internalAPI.getSceneGraph().getSelections().size > 0) {
+          this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(new Set())]);
+        }
       }
     }
 
@@ -91,10 +93,16 @@ export class ToolMove extends ToolBase {
       };
       internalAPI.getSceneGraph().setSelectionRange(selectionRange);
 
-      const nodes = internalAPI.getSceneGraph().pickNodesAtRange(selectionRange);
-      this.getCommand(internalAPI).addOperations([
-        new WondUpdateSelectionOperation(new Set(nodes.map((node) => node.attrs.id))),
-      ]);
+      const selections = internalAPI.getSceneGraph().getSelections();
+      const nodes = internalAPI
+        .getSceneGraph()
+        .pickNodesAtRange(selectionRange)
+        .filter((node) => !selections.has(node.attrs.id));
+      if (nodes.length > 0) {
+        this.getCommand(internalAPI).addOperations([
+          new WondUpdateSelectionOperation(new Set(nodes.map((node) => node.attrs.id))),
+        ]);
+      }
     } else {
       // drag selection.
       internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
@@ -120,7 +128,7 @@ export class ToolMove extends ToolBase {
     this.modifyingNodeStartTransformMap.clear();
     internalAPI.getSceneGraph().setIsSelectionMoveDragging(false);
 
-    if (!this.command || this.command.getOperationSize() === 0) {
+    if (!this.command || this.command.getOperations().length === 0) {
       if (this.startPoint) {
         const selectionNode = internalAPI.getSceneGraph().pickNodeAtPoint(this.startPoint);
         if (selectionNode) {
