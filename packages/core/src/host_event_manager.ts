@@ -7,7 +7,6 @@ interface IHostEvent {
   move(event: IMouseEvent): void;
   drag(event: IMouseEvent): void;
   end(event: IMouseEvent): void;
-  click(event: IMouseEvent): void;
   contextmenu(event: IMouseEvent): void;
   wheel(event: IMouseEvent): void;
 }
@@ -16,7 +15,13 @@ export class WondHostEventManager {
   private readonly hostElement: HTMLCanvasElement;
   private readonly eventEmitter = new EventEmitter<IHostEvent>();
 
-  private isDragging = false;
+  private draggingState: {
+    state: boolean;
+    button: MouseEventButton | null;
+  } = {
+    state: false,
+    button: null,
+  };
 
   constructor(internalAPI: IWondInternalAPI) {
     this.hostElement = internalAPI.getCanvasRootElement();
@@ -29,7 +34,6 @@ export class WondHostEventManager {
     document.addEventListener('pointerup', this.onPointerUp);
     document.addEventListener('contextmenu', this.onContextMenu);
     document.addEventListener('wheel', this.onWheel, { passive: false });
-    document.addEventListener('click', this.onClick);
   }
 
   clear() {
@@ -38,24 +42,7 @@ export class WondHostEventManager {
     document.removeEventListener('pointerup', this.onPointerUp);
     document.removeEventListener('contextmenu', this.onContextMenu);
     document.removeEventListener('wheel', this.onWheel);
-    document.removeEventListener('click', this.onClick);
   }
-
-  private onClick = (event: MouseEvent) => {
-    if (event.target !== this.hostElement) {
-      return;
-    }
-    event.preventDefault();
-    this.eventEmitter.emit('click', {
-      altKey: event.altKey,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      button: event.button,
-      nativeEvent: event,
-    });
-  };
 
   private onWheel = (event: WheelEvent) => {
     if (event.target !== this.hostElement) {
@@ -101,7 +88,8 @@ export class WondHostEventManager {
 
     event.preventDefault();
 
-    this.isDragging = true;
+    this.draggingState.state = true;
+    this.draggingState.button = event.button as MouseEventButton;
     this.eventEmitter.emit('start', {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,
@@ -120,7 +108,11 @@ export class WondHostEventManager {
 
     event.preventDefault();
 
-    if (!this.isDragging) {
+    if (!this.draggingState.state) {
+      if (event.target !== this.hostElement) {
+        return;
+      }
+
       this.eventEmitter.emit('move', {
         altKey: event.altKey,
         ctrlKey: event.ctrlKey,
@@ -137,7 +129,7 @@ export class WondHostEventManager {
         shiftKey: event.shiftKey,
         clientX: event.clientX,
         clientY: event.clientY,
-        button: event.button,
+        button: this.draggingState.button!,
         nativeEvent: event,
       });
     }
@@ -149,7 +141,8 @@ export class WondHostEventManager {
     }
     event.preventDefault();
 
-    this.isDragging = false;
+    this.draggingState.state = false;
+    this.draggingState.button = null;
     this.eventEmitter.emit('end', {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,

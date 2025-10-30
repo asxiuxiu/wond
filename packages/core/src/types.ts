@@ -64,5 +64,5 @@ export interface WondGraphicDrawingContext {
   canvas: Canvas;
   fontMgr: FontMgr;
   canvasTransform: Matrix;
-  overlayStrokePaint: Paint;
+  cachePaintCollection: Map<string, Paint>;
 }

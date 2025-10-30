@@ -1,4 +1,4 @@
-.layer-node {
+.wond-layer-node {
   display: flex;
   align-items: center;
   box-sizing: border-box;
@@ -7,6 +7,7 @@
   color: rgba(0, 0, 0, 0.9);
 
   &:hover,
+  &.hovered,
   &.selected {
     &::after {
       content: '';
@@ -27,9 +28,10 @@
     }
   }
 
+  &.hovered,
   &:hover {
     &::after {
-      background-color: rgba(237, 237, 237, 0.484);
+      background-color: rgba(237, 237, 237, 0.527);
     }
   }
 
@@ -46,10 +48,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #000;
+    color: rgb(158, 158, 158);
+  }
+
+  &.selected {
+    .layer-node-indent {
+      color: #000;
+    }
   }
 
   .layer-node-name {
     padding-left: 4px;
+    line-height: 1;
   }
 }

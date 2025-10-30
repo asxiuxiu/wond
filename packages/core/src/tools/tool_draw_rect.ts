@@ -4,8 +4,8 @@ import { WondRect, type WondRectAttrs } from '../graphics/rect';
 import { type IMouseEvent } from '../types';
 import { type IWondPoint } from '../types';
 import type { IWondInternalAPI } from '../editor';
-import { WondAddNodeOperation, WondUpdateSelectionOperation } from '../operations';
-import { WondUpdatePropertyOperation } from '../operations/update_property_operation';
+import { WondAddNodeOperation, WondUpdateSelectionOperation, WondUpdatePropertyOperation } from '../operations';
+import { WondToolType } from './types';
 
 export class ToolDrawRect extends ToolBase {
   private startPoint: IWondPoint | null = null;
@@ -89,5 +89,6 @@ export class ToolDrawRect extends ToolBase {
     }
 
     this.drawingRect = null;
+    internalAPI.getToolManager().setActiveToolType(WondToolType.Move);
   };
 }

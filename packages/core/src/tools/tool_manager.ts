@@ -7,7 +7,7 @@ import { ToolMove } from './tool_move';
 import { WondToolType } from './types';
 
 export class WondToolManager {
-  private activeToolStack: ToolBase[] = [];
+  private activeToolType: WondToolType = WondToolType.Move;
   private readonly internalAPI: IWondInternalAPI;
   private tools: Record<WondToolType, ToolBase> = {
     [WondToolType.DrawRect]: new ToolDrawRect(),
@@ -19,22 +19,21 @@ export class WondToolManager {
     this.internalAPI = internalAPI;
   }
 
-  getActiveTool(): ToolBase {
-    if (this.activeToolStack.length > 0) {
-      return this.activeToolStack[this.activeToolStack.length - 1];
-    }
-    // TODO: move tool
-    return this.tools[WondToolType.DrawRect];
+  private getActiveTool(): ToolBase {
+    return this.tools[this.activeToolType] || this.tools[WondToolType.Move];
   }
 
-  pushActiveTool(toolType: WondToolType) {
-    this.activeToolStack.push(this.tools[toolType]);
+  private getToolByType(toolType: WondToolType): ToolBase | undefined {
+    return this.tools[toolType];
   }
 
-  popActiveTool(toolType: WondToolType) {
-    if (this.activeToolStack[this.activeToolStack.length - 1] === this.tools[toolType]) {
-      this.activeToolStack.pop();
-    }
+  public getActiveToolType(): WondToolType {
+    return this.activeToolType;
+  }
+
+  setActiveToolType(toolType: WondToolType) {
+    this.activeToolType = toolType;
+    this.internalAPI.emitEvent('onActiveToolChange', toolType);
   }
 
   onStart = (event: IMouseEvent) => {
@@ -42,7 +41,9 @@ export class WondToolManager {
       return;
     }
     if (event.button === MouseEventButton.Middle) {
-      this.pushActiveTool(WondToolType.Hand);
+      const handTool = this.getToolByType(WondToolType.Hand);
+      handTool?.onStart(event, this.internalAPI);
+      return;
     }
 
     this.getActiveTool().onStart(event, this.internalAPI);
@@ -50,6 +51,12 @@ export class WondToolManager {
 
   onDrag = (event: IMouseEvent) => {
     if (event.button === MouseEventButton.Right) {
+      return;
+    }
+
+    if (event.button === MouseEventButton.Middle) {
+      const handTool = this.getToolByType(WondToolType.Hand);
+      handTool?.onDrag(event, this.internalAPI);
       return;
     }
     this.getActiveTool().onDrag(event, this.internalAPI);
@@ -67,7 +74,9 @@ export class WondToolManager {
       return;
     }
     if (event.button === MouseEventButton.Middle) {
-      this.popActiveTool(WondToolType.Hand);
+      const handTool = this.getToolByType(WondToolType.Hand);
+      handTool?.onEnd(event, this.internalAPI);
+      return;
     }
     this.getActiveTool().onEnd(event, this.internalAPI);
   };

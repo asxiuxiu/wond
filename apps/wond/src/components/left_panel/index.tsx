@@ -1,10 +1,10 @@
-import Layers from '../Layers';
+import { LayerTree } from '../layer';
 import './index.scss';
 
 const LeftPanel = () => {
   return (
-    <div className="left-panel">
-      <Layers />
+    <div className="wond-left-panel">
+      <LayerTree />
     </div>
   );
 };

@@ -1,4 +1,3 @@
-import { ZERO_BOUNDING_AREA } from './../constants';
 import { WondBoundingArea } from '../geo';
 import { type Matrix } from 'transformation-matrix';
 import type { WondGraphicDrawingContext } from '../types';
@@ -12,7 +11,7 @@ export const GraphicsType = {
   Graph: 'graph',
   Rectangle: 'rectangle',
   Vector: 'vector',
-} as const;
+};
 
 export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
 
@@ -114,6 +113,10 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
     const width = maxX - minX;
     const height = maxY - minY;
 
+    if (width === 0 && height === 0) {
+      return '';
+    }
+
     const targetSize = 10;
     const boundingSize = 9;
     const scale = boundingSize / Math.max(width, height);
@@ -136,5 +139,5 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
 
   public draw(context: WondGraphicDrawingContext): void {}
 
-  public drawOutline(context: WondGraphicDrawingContext): void {}
+  public drawOutline(context: WondGraphicDrawingContext, type: 'selection' | 'hover' = 'selection'): void {}
 }

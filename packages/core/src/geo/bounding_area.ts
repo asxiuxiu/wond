@@ -1,3 +1,5 @@
+import type { IWondPoint } from '../types';
+
 export class WondBoundingArea {
   left: number;
   right: number;
@@ -32,6 +34,10 @@ export class WondBoundingArea {
     const top = Math.max(this.top, area.top);
     const bottom = Math.min(this.bottom, area.bottom);
     return new WondBoundingArea(left, right, top, bottom);
+  }
+
+  containsPoint(point: IWondPoint) {
+    return this.left <= point.x && this.right >= point.x && this.top <= point.y && this.bottom >= point.y;
   }
 
   contains(area: WondBoundingArea) {

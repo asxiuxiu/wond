@@ -1,11 +1,11 @@
 import './index.scss';
-import { useEditor } from '../../context/useEditor';
+import { useEditor } from '@/context/useEditor';
 import { useCallback, useEffect, useState } from 'react';
 import { List } from 'react-window';
-import LayerNode, { type LayerNodeData } from '../LayerNode';
+import { LayerNode, type LayerNodeData } from '../layer_node';
 import type { WondGraphics } from '@wond/core';
 
-const Layers = () => {
+export const LayerTree = () => {
   const { editor, loading } = useEditor();
   const [layoutNodes, setLayoutNodes] = useState<LayerNodeData[]>([]);
   const [openedNodes, setOpenedNodes] = useState<Set<string>>(new Set());
@@ -31,7 +31,7 @@ const Layers = () => {
         data: node,
         nestingLevel,
         isSelected: editor.isNodeSelected(node.attrs.id),
-        isHovered: false,
+        isHovered: editor.isNodeHovered(node.attrs.id),
         isVisible: node.attrs.visible,
         isLocked: node.attrs.locked,
         isOpened,
@@ -65,12 +65,20 @@ const Layers = () => {
     };
   }, [editor, openedNodes]);
 
+  const handleLayersContentClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      editor?.setSelections([]);
+    },
+    [editor],
+  );
+
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="layers">
+    <div className="wond-layer-tree">
       <div className="layers-title">Layers</div>
-      <div className="layers-content">
+      <div className="layers-content" onClick={handleLayersContentClick}>
         <List
           rowComponent={LayerNode}
           rowCount={layoutNodes.length}
@@ -81,5 +89,3 @@ const Layers = () => {
     </div>
   );
 };
-
-export default Layers;

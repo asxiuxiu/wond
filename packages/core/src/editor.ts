@@ -1,13 +1,15 @@
 import { WondCoordinateManager } from './coordinate_manager';
-import { WondCommandManager } from './command_manager';
+import { WondCommand, WondCommandManager } from './command_manager';
 import { WondHostEventManager } from './host_event_manager';
 import { WondSceneGraph } from './scene_graph';
-import { WondToolManager } from './tools';
+import { WondToolManager, type WondToolType } from './tools';
 import type { WondGraphics } from './graphics';
 import { EventEmitter } from '@wond/common';
+import { WondUpdateSelectionOperation } from './operations';
 
 export interface IWondEditorEvent {
   onLayoutDirty(): void;
+  onActiveToolChange(toolType: WondToolType): void;
 }
 
 export interface IWondInternalAPI {
@@ -83,12 +85,6 @@ export class WondEditor {
         this.#coordinateManager.scaleByStep(event.deltaY! > 0 ? 1 : -1, { x: event.clientX, y: event.clientY });
       }
     });
-
-    this.#hostEventManager.on('click', (event) => {
-      const clickScenePoint = this.#coordinateManager.screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
-      const nodes = this.#sceneGraph.pickNodesAtPoint(clickScenePoint);
-      console.log('click nodes', nodes);
-    });
   }
 
   static _createInstance(options: WondEditorOptions): WondEditor {
@@ -101,6 +97,42 @@ export class WondEditor {
 
   public isNodeSelected(nodeId: string): boolean {
     return this.#sceneGraph.getSelections().has(nodeId);
+  }
+
+  public isNodeHovered(nodeId: string): boolean {
+    return this.#sceneGraph.getHoverNode() === nodeId;
+  }
+
+  public getActiveToolType(): WondToolType {
+    return this.#toolManager.getActiveToolType();
+  }
+
+  public setActiveToolType(toolType: WondToolType) {
+    this.#toolManager.setActiveToolType(toolType);
+  }
+
+  public setSelections(nodeIds: string[]) {
+    const command = new WondCommand();
+    this.#commandManager.executeCommand(command);
+    command.addOperations([new WondUpdateSelectionOperation(new Set(nodeIds))]);
+    command.complete();
+  }
+
+  public toggleSelection(nodeId: string) {
+    const selections = this.#sceneGraph.getSelections();
+    if (selections.has(nodeId)) {
+      selections.delete(nodeId);
+    } else {
+      selections.add(nodeId);
+    }
+    const command = new WondCommand();
+    this.#commandManager.executeCommand(command);
+    command.addOperations([new WondUpdateSelectionOperation(selections)]);
+    command.complete();
+  }
+
+  public setHoverNode(nodeId: string | null) {
+    this.#sceneGraph.setHoverNode(nodeId);
   }
 
   public on(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]) {

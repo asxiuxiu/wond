@@ -39,8 +39,18 @@ export class WondRect extends WondGraphics<WondRectAttrs> {
     canvas.drawPath(path, paint);
   }
 
-  public drawOutline(context: WondGraphicDrawingContext) {
-    const { canvas, overlayStrokePaint } = context;
+  public drawOutline(context: WondGraphicDrawingContext, type: 'selection' | 'hover' = 'selection') {
+    const { canvas, cachePaintCollection } = context;
+    const overlayStrokePaint = cachePaintCollection.get('overlayStrokePaint');
+    if (!overlayStrokePaint) {
+      return;
+    }
+
+    if (type === 'hover') {
+      overlayStrokePaint.setStrokeWidth(2);
+    } else if (type === 'selection') {
+      overlayStrokePaint.setStrokeWidth(1);
+    }
 
     const path = this.getPaintPath(context);
     canvas.drawPath(path, overlayStrokePaint);
