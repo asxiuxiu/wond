@@ -107,8 +107,12 @@ export class WondSceneGraph {
     return this.rootNode;
   }
 
-  public getSelections() {
-    return this.selectedNodeIds;
+  public isNodeSelected(nodeId: string): boolean {
+    return this.selectedNodeIds.has(nodeId);
+  }
+
+  public getSelectionsCopy() {
+    return new Set(this.selectedNodeIds);
   }
 
   public getSelectionsBoundingArea(): Readonly<WondBoundingArea | null> {
@@ -150,19 +154,28 @@ export class WondSceneGraph {
     return this.hoverNode;
   }
 
-  public addSelection(nodeId: string) {
-    this.selectedNodeIds.add(nodeId);
-    this.markLayerTreeDirty();
+  private markSelectionChange() {
+    this.internalAPI.emitEvent('onSelectionChange', this.getSelectionsCopy());
   }
 
-  public deleteSelection(nodeId: string) {
-    this.selectedNodeIds.delete(nodeId);
-    this.markLayerTreeDirty();
-  }
-
-  public clearSelection() {
-    this.selectedNodeIds.clear();
-    this.markLayerTreeDirty();
+  public updateSelection(nodeSet: Set<string>) {
+    let isDirty = false;
+    for (const nodeId of nodeSet) {
+      if (!this.selectedNodeIds.has(nodeId)) {
+        this.selectedNodeIds.add(nodeId);
+        isDirty = true;
+      }
+    }
+    for (const nodeId of this.selectedNodeIds) {
+      if (!nodeSet.has(nodeId)) {
+        this.selectedNodeIds.delete(nodeId);
+        isDirty = true;
+      }
+    }
+    if (isDirty) {
+      this.markSelectionChange();
+      this.markLayerTreeDirty();
+    }
   }
 
   public getNodeById(id: string) {

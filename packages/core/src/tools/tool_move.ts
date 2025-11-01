@@ -56,7 +56,7 @@ export class ToolMove extends ToolBase {
       if (currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
         this.isModifyingSelection = true;
       } else {
-        if (internalAPI.getSceneGraph().getSelections().size > 0) {
+        if (internalAPI.getSceneGraph().getSelectionsCopy().size > 0) {
           this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(new Set())]);
         }
       }
@@ -64,7 +64,7 @@ export class ToolMove extends ToolBase {
 
     if (this.isModifyingSelection) {
       // cache the init transform of the selection nodes.
-      const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelections())
+      const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelectionsCopy())
         .map((nodeId) => internalAPI.getSceneGraph().getNodeById(nodeId))
         .filter((node) => node != undefined);
       selectionNodes.forEach((node) => {
@@ -107,7 +107,7 @@ export class ToolMove extends ToolBase {
       };
       internalAPI.getSceneGraph().setSelectionRange(selectionRange);
 
-      const selectionsSet = internalAPI.getSceneGraph().getSelections();
+      const selectionsSet = internalAPI.getSceneGraph().getSelectionsCopy();
       const selections = Array.from(selectionsSet);
       const pickNodes = internalAPI.getSceneGraph().pickNodesAtRange(selectionRange);
       const pickNodeIdsSet = new Set(pickNodes.map((node) => node.attrs.id));
