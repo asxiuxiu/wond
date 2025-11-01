@@ -107,15 +107,16 @@ export class ToolMove extends ToolBase {
       };
       internalAPI.getSceneGraph().setSelectionRange(selectionRange);
 
-      const selections = internalAPI.getSceneGraph().getSelections();
-      const nodes = internalAPI
-        .getSceneGraph()
-        .pickNodesAtRange(selectionRange)
-        .filter((node) => !selections.has(node.attrs.id));
-      if (nodes.length > 0) {
-        this.getCommand(internalAPI).addOperations([
-          new WondUpdateSelectionOperation(new Set(nodes.map((node) => node.attrs.id))),
-        ]);
+      const selectionsSet = internalAPI.getSceneGraph().getSelections();
+      const selections = Array.from(selectionsSet);
+      const pickNodes = internalAPI.getSceneGraph().pickNodesAtRange(selectionRange);
+      const pickNodeIdsSet = new Set(pickNodes.map((node) => node.attrs.id));
+
+      if (
+        pickNodes.some((node) => !selectionsSet.has(node.attrs.id)) ||
+        selections.some((nodeId) => !pickNodeIdsSet.has(nodeId))
+      ) {
+        this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(pickNodeIdsSet)]);
       }
     } else {
       // drag selection.
