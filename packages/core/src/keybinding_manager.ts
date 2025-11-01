@@ -17,13 +17,13 @@ export interface IWondKeybinding {
 }
 
 export class WondKeybindingManager {
-  private readonly internalAPI: IWondInternalAPI;
+  // private readonly internalAPI: IWondInternalAPI;
 
   private readonly keybindingMap = new Map<number, IWondKeybinding>();
   private id = 0;
 
   constructor(internalAPI: IWondInternalAPI) {
-    this.internalAPI = internalAPI;
+    // this.internalAPI = internalAPI;
     this.bindEvent();
   }
 

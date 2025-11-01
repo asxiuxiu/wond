@@ -8,6 +8,10 @@ export class ToolHand extends ToolBase {
   private startPoint: IWondPoint | null = null;
   private originalViewSpaceMeta: ViewSpaceMeta | null = null;
 
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
+    internalAPI.getCursorManager().setCursor('grab');
+  };
+
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.originalViewSpaceMeta = { ...internalAPI.getCoordinateManager().getViewSpaceMeta() };
     this.startPoint = internalAPI

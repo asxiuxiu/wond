@@ -19,6 +19,10 @@ export class ToolDrawRect extends ToolBase {
     return ++this.index_generator;
   }
 
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
+    internalAPI.getCursorManager().setCursor('crosshair');
+  };
+
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.startPoint = internalAPI
       .getCoordinateManager()
@@ -86,6 +90,6 @@ export class ToolDrawRect extends ToolBase {
     }
 
     this.drawingRect = null;
-    internalAPI.getToolManager().setActiveToolType(WondToolType.Move);
+    internalAPI.getToolManager().setActiveToolByType(WondToolType.Move);
   };
 }

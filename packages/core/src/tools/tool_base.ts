@@ -6,4 +6,5 @@ export class ToolBase {
   onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
   onMove = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
   onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {};
 }

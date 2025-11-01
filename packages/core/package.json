@@ -20,7 +20,11 @@
     "transformation-matrix": "^3.0.0"
   },
   "devDependencies": {
+    "@types/postcss-url": "^10.0.4",
     "@types/rbush": "^4.0.0",
-    "rollup-plugin-copy": "^3.5.0"
+    "@types/rollup-plugin-postcss": "^3.1.4",
+    "postcss-url": "^10.1.3",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-postcss": "^4.0.2"
   }
 }

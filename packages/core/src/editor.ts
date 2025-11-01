@@ -7,6 +7,7 @@ import type { WondGraphics } from './graphics';
 import { EventEmitter } from '@wond/common';
 import { WondUpdateSelectionOperation } from './operations';
 import { WondKeybindingManager } from './keybinding_manager';
+import { WondCursorManager } from './cursor_manager';
 
 export interface IWondEditorEvent {
   onLayoutDirty(): void;
@@ -20,6 +21,7 @@ export interface IWondInternalAPI {
   getCoordinateManager(): WondCoordinateManager;
   getToolManager(): WondToolManager;
   getCanvasRootElement(): HTMLCanvasElement;
+  getCursorManager(): WondCursorManager;
   emitEvent(event: keyof IWondEditorEvent, ...args: Parameters<IWondEditorEvent[keyof IWondEditorEvent]>): void;
 }
 
@@ -38,6 +40,7 @@ export class WondEditor {
   #coordinateManager: WondCoordinateManager;
   #toolManager: WondToolManager;
   #keybindingManager: WondKeybindingManager;
+  #cursorManager: WondCursorManager;
 
   private readonly eventEmitter = new EventEmitter<IWondEditorEvent>();
 
@@ -64,6 +67,7 @@ export class WondEditor {
       getCoordinateManager: () => this.#coordinateManager,
       getToolManager: () => this.#toolManager,
       getCanvasRootElement: () => this.#canvasRootElement,
+      getCursorManager: () => this.#cursorManager,
       emitEvent: (event, ...args) => this.eventEmitter.emit(event, ...args),
     };
 
@@ -73,6 +77,7 @@ export class WondEditor {
     this.#commandManager = new WondCommandManager(this.#internalAPI);
     this.#toolManager = new WondToolManager(this.#internalAPI);
     this.#keybindingManager = new WondKeybindingManager(this.#internalAPI);
+    this.#cursorManager = new WondCursorManager(this.#internalAPI);
     this.bindHostEvents();
     this.bindKeybindings();
   }
@@ -123,7 +128,7 @@ export class WondEditor {
   }
 
   public setActiveToolType(toolType: WondToolType) {
-    this.#toolManager.setActiveToolType(toolType);
+    this.#toolManager.setActiveToolByType(toolType);
   }
 
   public setSelections(nodeIds: string[]) {

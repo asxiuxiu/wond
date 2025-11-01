@@ -1,0 +1,66 @@
+.wond-cursor-default {
+  cursor:
+    url('./icons/default.png') 5 5,
+    auto;
+}
+
+.wond-cursor-move {
+  cursor:
+    url('./icons/move.png') 16 16,
+    auto;
+}
+
+.wond-cursor-grab {
+  cursor:
+    url('./icons/grab.png') 16 16,
+    auto;
+}
+
+.wond-cursor-pen {
+  /* cursor: url('./cursor-icons/wond-cursor-pen.png') 5 5, auto; */
+  cursor:
+    url('./icons/pen.png') 5 5,
+    auto;
+}
+
+.wond-cursor-pen-close {
+  cursor:
+    url('./icons/pen-close.png') 5 5,
+    auto;
+}
+
+.wond-cursor-pen-anchor-add {
+  cursor:
+    url('./icons/pen-anchor-add.png') 5 5,
+    auto;
+}
+
+.wond-cursor-pen-anchor-remove {
+  cursor:
+    url('./icons/pen-anchor-remove.png') 5 5,
+    auto;
+}
+
+.wond-cursor-crosshair {
+  cursor:
+    url('./icons/crosshair.png') 15 15,
+    auto;
+}
+
+.wond-cursor-move-ns {
+  cursor:
+    url('./icons/move-ns.png') 5 5,
+    auto;
+}
+
+.wond-cursor-move-ew {
+  cursor:
+    url('./icons/move-ew.png') 5 5,
+    auto;
+}
+
+.wond-cursor-pencil {
+  cursor:
+    url('./icons/pencil.png') 8 24,
+    auto;
+}

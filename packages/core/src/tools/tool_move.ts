@@ -23,6 +23,20 @@ export class ToolMove extends ToolBase {
     return this.command;
   }
 
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
+    if (lastMouseMoveEvent === null) {
+      internalAPI.getCursorManager().setCursor('default');
+      return;
+    }
+
+    const lastMoveMoveScenePoint = internalAPI
+      .getCoordinateManager()
+      .screenCoordsToSceneCoords({ x: lastMouseMoveEvent.clientX, y: lastMouseMoveEvent.clientY });
+
+    // TODO: justify if the point hover the ControlPoint.
+    internalAPI.getCursorManager().setCursor('default');
+  };
+
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.startPoint = internalAPI
       .getCoordinateManager()
