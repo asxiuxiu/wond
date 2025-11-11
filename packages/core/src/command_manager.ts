@@ -100,4 +100,8 @@ export class WondCommandManager {
       this.undoStack.push(command);
     }
   };
+
+  public createCommand = () => {
+    return new WondCommand();
+  };
 }

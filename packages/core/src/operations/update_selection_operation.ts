@@ -13,33 +13,12 @@ export class WondUpdateSelectionOperation extends WondOperation {
   }
 
   execute = (sceneGraph: WondSceneGraph) => {
-    this.originSelectionNodeIds = new Set(sceneGraph.getSelections());
-
-    for (const nodeId of this.targetSelectionNodeIds) {
-      if (!this.originSelectionNodeIds.has(nodeId)) {
-        sceneGraph.addSelection(nodeId);
-      }
-    }
-
-    for (const nodeId of this.originSelectionNodeIds) {
-      if (!this.targetSelectionNodeIds.has(nodeId)) {
-        sceneGraph.deleteSelection(nodeId);
-      }
-    }
+    this.originSelectionNodeIds = sceneGraph.getSelectionsCopy();
+    sceneGraph.updateSelection(this.targetSelectionNodeIds);
   };
 
   undo = (sceneGraph: WondSceneGraph) => {
-    for (const nodeId of this.originSelectionNodeIds) {
-      if (!this.targetSelectionNodeIds.has(nodeId)) {
-        sceneGraph.addSelection(nodeId);
-      }
-    }
-
-    for (const nodeId of this.targetSelectionNodeIds) {
-      if (!this.originSelectionNodeIds.has(nodeId)) {
-        sceneGraph.deleteSelection(nodeId);
-      }
-    }
+    sceneGraph.updateSelection(this.originSelectionNodeIds);
   };
 
   getDirtyBoundingArea = (): WondBoundingArea => {

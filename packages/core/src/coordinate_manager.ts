@@ -1,14 +1,8 @@
 import type { IWondInternalAPI } from './editor';
-import type { IWondPoint } from './types';
+import type { IWondPoint, ViewSpaceMeta } from './types';
 import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
-
-export interface ViewSpaceMeta {
-  viewportOffsetX: number;
-  viewportOffsetY: number;
-  sceneScrollX: number;
-  sceneScrollY: number;
-  zoom: number;
-}
+import { getMatrix3x3FromTransform, screenCoordsToSceneCoords } from './utils';
+import type { Path } from 'canvaskit-wasm';
 
 export class WondCoordinateManager {
   private readonly canvasElement: HTMLCanvasElement;
@@ -30,36 +24,6 @@ export class WondCoordinateManager {
     const boundingBox = this.canvasElement.getBoundingClientRect();
     this.viewSpaceMeta.viewportOffsetX = boundingBox.left;
     this.viewSpaceMeta.viewportOffsetY = boundingBox.top;
-  }
-
-  public screenCoordsToSceneCoords(
-    screenPoint: IWondPoint,
-    overrideViewSpaceMeta: ViewSpaceMeta | null = null,
-  ): IWondPoint {
-    const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
-    return applyToPoint(
-      compose([
-        translate(-viewSpaceMeta.sceneScrollX, -viewSpaceMeta.sceneScrollY),
-        scale(1 / viewSpaceMeta.zoom),
-        translate(-viewSpaceMeta.viewportOffsetX, -viewSpaceMeta.viewportOffsetY),
-      ]),
-      screenPoint,
-    );
-  }
-
-  public sceneCoordsToScreenCoords(
-    scenePoint: IWondPoint,
-    overrideViewSpaceMeta: ViewSpaceMeta | null = null,
-  ): IWondPoint {
-    const viewSpaceMeta = overrideViewSpaceMeta || this.viewSpaceMeta;
-    return applyToPoint(
-      compose([
-        translate(viewSpaceMeta.viewportOffsetX, viewSpaceMeta.viewportOffsetY),
-        scale(viewSpaceMeta.zoom),
-        translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY),
-      ]),
-      scenePoint,
-    );
   }
 
   public updateViewSpaceMeta(meta: Partial<ViewSpaceMeta>) {
@@ -86,7 +50,7 @@ export class WondCoordinateManager {
   public scaleTo(newZoom: number, basePoint: IWondPoint) {
     const clampedZoom = Math.min(256, Math.max(0.015625, newZoom));
 
-    const baseScenePoint = this.screenCoordsToSceneCoords(basePoint);
+    const baseScenePoint = screenCoordsToSceneCoords(basePoint, this.viewSpaceMeta);
 
     const newSceneScrollX = (basePoint.x - this.viewSpaceMeta.viewportOffsetX) / clampedZoom - baseScenePoint.x;
     const newSceneScrollY = (basePoint.y - this.viewSpaceMeta.viewportOffsetY) / clampedZoom - baseScenePoint.y;

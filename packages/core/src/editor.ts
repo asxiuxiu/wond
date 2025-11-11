@@ -1,5 +1,5 @@
 import { WondCoordinateManager } from './coordinate_manager';
-import { WondCommand, WondCommandManager } from './command_manager';
+import { WondCommandManager } from './command_manager';
 import { WondHostEventManager } from './host_event_manager';
 import { WondSceneGraph } from './scene_graph';
 import { WondToolManager, type WondToolType } from './tools';
@@ -8,10 +8,12 @@ import { EventEmitter } from '@wond/common';
 import { WondUpdateSelectionOperation } from './operations';
 import { WondKeybindingManager } from './keybinding_manager';
 import { WondCursorManager } from './cursor_manager';
+import { WondControlPointManager } from './control_point_manager';
 
 export interface IWondEditorEvent {
   onLayoutDirty(): void;
   onActiveToolChange(toolType: WondToolType): void;
+  onSelectionChange(selectedNodeSet: Set<string>): void;
 }
 
 export interface IWondInternalAPI {
@@ -22,7 +24,10 @@ export interface IWondInternalAPI {
   getToolManager(): WondToolManager;
   getCanvasRootElement(): HTMLCanvasElement;
   getCursorManager(): WondCursorManager;
+  getControlPointManager(): WondControlPointManager;
   emitEvent(event: keyof IWondEditorEvent, ...args: Parameters<IWondEditorEvent[keyof IWondEditorEvent]>): void;
+  on(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]): void;
+  off(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]): void;
 }
 
 export interface WondEditorOptions {
@@ -41,6 +46,7 @@ export class WondEditor {
   #toolManager: WondToolManager;
   #keybindingManager: WondKeybindingManager;
   #cursorManager: WondCursorManager;
+  #controlPointManager: WondControlPointManager;
 
   private readonly eventEmitter = new EventEmitter<IWondEditorEvent>();
 
@@ -68,7 +74,10 @@ export class WondEditor {
       getToolManager: () => this.#toolManager,
       getCanvasRootElement: () => this.#canvasRootElement,
       getCursorManager: () => this.#cursorManager,
+      getControlPointManager: () => this.#controlPointManager,
       emitEvent: (event, ...args) => this.eventEmitter.emit(event, ...args),
+      on: (event, callback) => this.eventEmitter.on(event, callback),
+      off: (event, callback) => this.eventEmitter.off(event, callback),
     };
 
     this.#hostEventManager = new WondHostEventManager(this.#internalAPI);
@@ -78,6 +87,7 @@ export class WondEditor {
     this.#toolManager = new WondToolManager(this.#internalAPI);
     this.#keybindingManager = new WondKeybindingManager(this.#internalAPI);
     this.#cursorManager = new WondCursorManager(this.#internalAPI);
+    this.#controlPointManager = new WondControlPointManager(this.#internalAPI);
     this.bindHostEvents();
     this.bindKeybindings();
   }
@@ -116,7 +126,7 @@ export class WondEditor {
   }
 
   public isNodeSelected(nodeId: string): boolean {
-    return this.#sceneGraph.getSelections().has(nodeId);
+    return this.#sceneGraph.isNodeSelected(nodeId);
   }
 
   public isNodeHovered(nodeId: string): boolean {
@@ -132,25 +142,26 @@ export class WondEditor {
   }
 
   public setSelections(nodeIds: string[]) {
-    const needSelectNodes = nodeIds.filter((nodeId) => !this.#sceneGraph.getSelections().has(nodeId));
+    const nowSelections = this.#sceneGraph.getSelectionsCopy();
+    const needSelectNodes = nodeIds.filter((nodeId) => !nowSelections.has(nodeId));
     if (needSelectNodes.length === 0) {
       return;
     }
 
-    const command = new WondCommand();
+    const command = this.#commandManager.createCommand();
     this.#commandManager.executeCommand(command);
     command.addOperations([new WondUpdateSelectionOperation(new Set(nodeIds))]);
     command.complete();
   }
 
   public toggleSelection(nodeId: string) {
-    const selections = new Set(this.#sceneGraph.getSelections());
+    const selections = this.#sceneGraph.getSelectionsCopy();
     if (selections.has(nodeId)) {
       selections.delete(nodeId);
     } else {
       selections.add(nodeId);
     }
-    const command = new WondCommand();
+    const command = this.#commandManager.createCommand();
     this.#commandManager.executeCommand(command);
     command.addOperations([new WondUpdateSelectionOperation(selections)]);
     command.complete();

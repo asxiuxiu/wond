@@ -1,11 +1,12 @@
 import { ToolBase } from './tool_base';
-import { WondCommand } from '../command_manager';
 import { WondRect, type WondRectAttrs } from '../graphics/rect';
 import { type IMouseEvent } from '../types';
 import { type IWondPoint } from '../types';
 import type { IWondInternalAPI } from '../editor';
 import { WondAddNodeOperation, WondUpdateSelectionOperation, WondUpdatePropertyOperation } from '../operations';
 import { WondToolType } from './types';
+import type { WondCommand } from '../command_manager';
+import { screenCoordsToSceneCoords } from '../utils';
 
 export class ToolDrawRect extends ToolBase {
   private startPoint: IWondPoint | null = null;
@@ -24,9 +25,10 @@ export class ToolDrawRect extends ToolBase {
   };
 
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
-    this.startPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    this.startPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
   };
 
   private getTargetRectProperty(startPoint: IWondPoint, endPoint: IWondPoint) {
@@ -50,13 +52,14 @@ export class ToolDrawRect extends ToolBase {
 
   onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     if (!this.startPoint) return;
-    this.endPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    this.endPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
     // calculate the rect by the bounding box. can be other shape
 
     if (!this.command) {
-      this.command = new WondCommand();
+      this.command = internalAPI.getCommandManager().createCommand();
       internalAPI.getCommandManager().executeCommand(this.command);
     }
 

@@ -59,10 +59,18 @@ export const MouseEventButton = {
 
 export type MouseEventButton = (typeof MouseEventButton)[keyof typeof MouseEventButton];
 
+export interface ViewSpaceMeta {
+  viewportOffsetX: number;
+  viewportOffsetY: number;
+  sceneScrollX: number;
+  sceneScrollY: number;
+  zoom: number;
+}
+
 export interface WondGraphicDrawingContext {
   canvaskit: CanvasKit;
   canvas: Canvas;
   fontMgr: FontMgr;
-  canvasTransform: Matrix;
+  viewSpaceMeta: ViewSpaceMeta;
   cachePaintCollection: Map<string, Paint>;
 }

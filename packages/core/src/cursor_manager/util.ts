@@ -70,7 +70,7 @@ export const getIconSvgDataUrl = (type: 'resize' | 'rotation', degree: number) =
       console.warn('getIconSvgDataUrl: unknown type', type);
   }
 
-  const dataUrl = `url("data:image/svg+xml,${svgStr.replace(/"/g, "'").replace(/#/g, '%23')}") 16 16, auto`;
+  const dataUrl = `url("data:image/svg+xml,${svgStr.replace(/"/g, "'").replace(/#/g, '%23').replace(/\n/g, '')}") 16 16, auto`;
   svgIconCache.set(key, dataUrl);
   return dataUrl;
 };

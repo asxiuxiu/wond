@@ -1,8 +1,8 @@
 import { ToolBase } from './tool_base';
-import { type IMouseEvent } from '../types';
+import { type IMouseEvent, type ViewSpaceMeta } from '../types';
 import { type IWondPoint } from '../types';
 import type { IWondInternalAPI } from '../editor';
-import type { ViewSpaceMeta } from '../coordinate_manager';
+import { screenCoordsToSceneCoords } from '../utils';
 
 export class ToolHand extends ToolBase {
   private startPoint: IWondPoint | null = null;
@@ -14,9 +14,8 @@ export class ToolHand extends ToolBase {
 
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.originalViewSpaceMeta = { ...internalAPI.getCoordinateManager().getViewSpaceMeta() };
-    this.startPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
+
+    this.startPoint = screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
   };
   onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.onDragScene(event, internalAPI);
@@ -27,10 +26,8 @@ export class ToolHand extends ToolBase {
   };
 
   private onDragScene = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
-    if (!this.startPoint) return;
-    const endPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
+    if (!this.startPoint || !this.originalViewSpaceMeta) return;
+    const endPoint = screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
 
     const delta = {
       x: endPoint.x - this.startPoint.x,
@@ -38,8 +35,8 @@ export class ToolHand extends ToolBase {
     };
 
     internalAPI.getCoordinateManager().updateViewSpaceMeta({
-      sceneScrollX: this.originalViewSpaceMeta!.sceneScrollX + delta.x,
-      sceneScrollY: this.originalViewSpaceMeta!.sceneScrollY + delta.y,
+      sceneScrollX: this.originalViewSpaceMeta.sceneScrollX + delta.x,
+      sceneScrollY: this.originalViewSpaceMeta.sceneScrollY + delta.y,
     });
   };
 }

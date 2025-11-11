@@ -1,26 +1,47 @@
 import { ToolBase } from './tool_base';
 import { type IMouseEvent, type IWondPoint } from '../types';
 import type { IWondInternalAPI } from '../editor';
-import { WondCommand } from '../command_manager';
 import type { BBox } from 'rbush';
 import type { Matrix } from 'transformation-matrix';
+import type { WondCommand } from '../command_manager';
 import type { WondGraphicsAttrs } from '../graphics/graphics';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
+import type { IWondControlPoint } from '../control_point_manager';
+import { sceneCoordsToScreenCoords, screenCoordsToSceneCoords } from '../utils';
 
 export class ToolMove extends ToolBase {
   private startPoint: IWondPoint | null = null;
+  private command: WondCommand | null = null;
+
   private isModifyingSelection = false;
   private modifyingNodeStartTransformMap: Map<string, Matrix> = new Map();
-  private command: WondCommand | null = null;
+
+  private targetControlPoint: IWondControlPoint<WondGraphicsAttrs> | null = null;
 
   private getCommand(internalAPI: IWondInternalAPI) {
     if (!this.command) {
-      this.command = new WondCommand();
+      3;
+      this.command = internalAPI.getCommandManager().createCommand();
       internalAPI.getCommandManager().executeCommand(this.command);
     }
 
     return this.command;
+  }
+
+  private tryPickControlPoint(
+    point: IWondPoint,
+    internalAPI: IWondInternalAPI,
+  ): IWondControlPoint<WondGraphicsAttrs> | null {
+    const controlPoints = internalAPI.getControlPointManager().getControlPoints();
+    for (let i = controlPoints.length - 1; i >= 0; i--) {
+      const controlPoint = controlPoints[i];
+      // if (controlPoint.containsPoint(point)) {
+      //   return controlPoint;
+      // }
+    }
+
+    return null;
   }
 
   onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
@@ -29,25 +50,42 @@ export class ToolMove extends ToolBase {
       return;
     }
 
-    const lastMoveMoveScenePoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: lastMouseMoveEvent.clientX, y: lastMouseMoveEvent.clientY });
+    const lastMouseMoveScenePoint = screenCoordsToSceneCoords(
+      { x: lastMouseMoveEvent.clientX, y: lastMouseMoveEvent.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
 
-    // TODO: justify if the point hover the ControlPoint.
+    const targetControlPoint = this.tryPickControlPoint(lastMouseMoveScenePoint, internalAPI);
+    if (targetControlPoint) {
+      internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
+      return;
+    }
+
     internalAPI.getCursorManager().setCursor('default');
   };
 
   onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
-    this.startPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    this.startPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
+
+    const targetControlPoint = this.tryPickControlPoint(this.startPoint, internalAPI);
+    if (targetControlPoint) {
+      // ready to process drag event for control point.
+      this.targetControlPoint = targetControlPoint;
+      this.targetControlPoint.onDragStart(event, internalAPI);
+      return;
+    }
 
     const currentSelectionBoundingArea = internalAPI.getSceneGraph().getSelectionsBoundingArea();
     const selectionNode = internalAPI.getSceneGraph().pickNodeAtPoint(this.startPoint);
     if (selectionNode) {
       this.isModifyingSelection = true;
       internalAPI.getSceneGraph().setHoverNode(selectionNode.attrs.id);
+
       if (!currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
+        // if current selection bounding area does not contain the start point, update the selection to the selected node.
         this.getCommand(internalAPI).addOperations([
           new WondUpdateSelectionOperation(new Set([selectionNode.attrs.id])),
         ]);
@@ -56,7 +94,8 @@ export class ToolMove extends ToolBase {
       if (currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
         this.isModifyingSelection = true;
       } else {
-        if (internalAPI.getSceneGraph().getSelections().size > 0) {
+        // if no selection node is picked, check if the start point is in the current selection bounding area.
+        if (internalAPI.getSceneGraph().getSelectionsCopy().size > 0) {
           this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(new Set())]);
         }
       }
@@ -64,7 +103,7 @@ export class ToolMove extends ToolBase {
 
     if (this.isModifyingSelection) {
       // cache the init transform of the selection nodes.
-      const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelections())
+      const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelectionsCopy())
         .map((nodeId) => internalAPI.getSceneGraph().getNodeById(nodeId))
         .filter((node) => node != undefined);
       selectionNodes.forEach((node) => {
@@ -74,9 +113,21 @@ export class ToolMove extends ToolBase {
   };
 
   onMove = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
-    const hoverPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    const hoverPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
+
+    // justify if the point hover the ControlPoint.
+    const targetControlPoint = this.tryPickControlPoint(hoverPoint, internalAPI);
+    if (targetControlPoint) {
+      internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
+      return;
+    }
+
+    internalAPI.getCursorManager().setCursor('default');
+
+    // try hover the graphics.
     const hoverNode = internalAPI.getSceneGraph().pickNodeAtPoint(hoverPoint);
     if (hoverNode) {
       internalAPI.getSceneGraph().setHoverNode(hoverNode.attrs.id);
@@ -88,17 +139,24 @@ export class ToolMove extends ToolBase {
   onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     if (!this.startPoint) return;
 
-    const startScreenPoint = internalAPI.getCoordinateManager().sceneCoordsToScreenCoords(this.startPoint);
-    if (distance(startScreenPoint, { x: event.clientX, y: event.clientY }) < 3) {
-      // block the drag when the start point is too close to the current point.
+    if (this.targetControlPoint) {
+      // process drag event for control point.
+      const updateProperty = this.targetControlPoint.onDrag(event, internalAPI);
+      if (updateProperty) {
+        this.getCommand(internalAPI).addOperations([
+          new WondUpdatePropertyOperation(this.targetControlPoint.refGraphic, updateProperty),
+        ]);
+      }
       return;
     }
 
-    const endPoint = internalAPI
-      .getCoordinateManager()
-      .screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY });
+    const endPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
 
     if (!this.isModifyingSelection) {
+      // try to select nodes by range box.
       const selectionRange: BBox = {
         minX: Math.min(this.startPoint.x, endPoint.x),
         minY: Math.min(this.startPoint.y, endPoint.y),
@@ -107,7 +165,7 @@ export class ToolMove extends ToolBase {
       };
       internalAPI.getSceneGraph().setSelectionRange(selectionRange);
 
-      const selectionsSet = internalAPI.getSceneGraph().getSelections();
+      const selectionsSet = internalAPI.getSceneGraph().getSelectionsCopy();
       const selections = Array.from(selectionsSet);
       const pickNodes = internalAPI.getSceneGraph().pickNodesAtRange(selectionRange);
       const pickNodeIdsSet = new Set(pickNodes.map((node) => node.attrs.id));
@@ -119,7 +177,16 @@ export class ToolMove extends ToolBase {
         this.getCommand(internalAPI).addOperations([new WondUpdateSelectionOperation(pickNodeIdsSet)]);
       }
     } else {
-      // drag selection.
+      // try to move selection nodes.
+      const startScreenPoint = sceneCoordsToScreenCoords(
+        this.startPoint,
+        internalAPI.getCoordinateManager().getViewSpaceMeta(),
+      );
+      if (distance(startScreenPoint, { x: event.clientX, y: event.clientY }) < 3) {
+        // block the drag when the start point is too close to the current point.
+        return;
+      }
+
       internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
       this.modifyingNodeStartTransformMap.forEach((startTransform, nodeId) => {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
@@ -141,6 +208,10 @@ export class ToolMove extends ToolBase {
   onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
     this.isModifyingSelection = false;
     this.modifyingNodeStartTransformMap.clear();
+
+    this.targetControlPoint?.onDragEnd(event, internalAPI);
+    this.targetControlPoint = null;
+
     internalAPI.getSceneGraph().setIsSelectionMoveDragging(false);
 
     if (!this.command || this.command.getOperations().length === 0) {

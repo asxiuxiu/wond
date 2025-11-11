@@ -1,18 +1,15 @@
 import { GraphicsType, WondGraphics, type WondGraphicsAttrs } from './graphics';
 import type { WondGraphicDrawingContext } from '../types';
 import { DEFAULT_FILL_COLOR } from '../constants';
-import { getMatrix3x3FromTransform } from '../utils';
+import { getMatrix3x3FromTransform, scenePathToPaintPath } from '../utils';
 import { getCanvasKitContext } from '../context';
 
-export interface WondRectAttrs extends WondGraphicsAttrs {}
+export interface WondRectAttrs extends WondGraphicsAttrs {
+  radius?: number;
+}
 
 export class WondRect extends WondGraphics<WondRectAttrs> {
   type: GraphicsType = GraphicsType.Rectangle;
-
-  private getPaintPath(context: WondGraphicDrawingContext) {
-    const { canvasTransform } = context;
-    return this._scenePath.copy().transform(getMatrix3x3FromTransform(canvasTransform));
-  }
 
   protected generateScenePath() {
     const { canvaskit } = getCanvasKitContext();
@@ -35,7 +32,7 @@ export class WondRect extends WondGraphics<WondRectAttrs> {
     paint.setStyle(canvaskit.PaintStyle.Fill);
     paint.setAntiAlias(true);
 
-    const path = this.getPaintPath(context);
+    const path = scenePathToPaintPath(this._scenePath.copy(), context.viewSpaceMeta);
     canvas.drawPath(path, paint);
   }
 
@@ -52,7 +49,7 @@ export class WondRect extends WondGraphics<WondRectAttrs> {
       overlayStrokePaint.setStrokeWidth(1);
     }
 
-    const path = this.getPaintPath(context);
+    const path = scenePathToPaintPath(this._scenePath.copy(), context.viewSpaceMeta);
     canvas.drawPath(path, overlayStrokePaint);
   }
 }

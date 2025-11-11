@@ -1,19 +1,16 @@
 import { type Canvas, type Paint, type Surface } from 'canvaskit-wasm';
 import { WondDocument } from './graphics/document';
-import {
-  DEFAULT_OVERLAY_COLOR as DEFAULT_OVERLAY_COLOR,
-  DEFAULT_SELECTION_RANGE_FILL_COLOR,
-  ZERO_BOUNDING_AREA,
-} from './constants';
+import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
 import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
 import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
-import { applyToPoints, compose, scale, translate } from 'transformation-matrix';
-import { getMatrix3x3FromTransform } from './utils';
+import { applyToPoint, applyToPoints, compose, decomposeTSR, scale, translate } from 'transformation-matrix';
+import { getMatrix3x3FromTransform, sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
 import { getCanvasKitContext } from './context';
 import type { IWondInternalAPI } from './editor';
 import type { WondGraphics } from './graphics';
 import { compareCoordinates, throttle } from '@wond/common';
 import RBush, { type BBox } from 'rbush';
+import { CONTROL_POINT_RADIUS } from './control_point_manager/constants';
 
 export class WondSceneGraph {
   private readonly internalAPI: IWondInternalAPI;
@@ -71,7 +68,7 @@ export class WondSceneGraph {
     );
     overlayStrokePaint.setStyle(canvaskit.PaintStyle.Stroke);
     overlayStrokePaint.setStrokeWidth(1);
-    overlayStrokePaint.setAntiAlias(false);
+    overlayStrokePaint.setAntiAlias(true);
 
     this.cachePaintCollection.set('overlayStrokePaint', overlayStrokePaint);
 
@@ -101,14 +98,38 @@ export class WondSceneGraph {
     selectionRangeFillPaint.setStyle(canvaskit.PaintStyle.Fill);
     selectionRangeFillPaint.setAntiAlias(false);
     this.cachePaintCollection.set('selectionRangeFillPaint', selectionRangeFillPaint);
+
+    const controlPointOutlinePaint = new canvaskit.Paint();
+    controlPointOutlinePaint.setColor(
+      canvaskit.Color4f(
+        DEFAULT_OVERLAY_COLOR.r / 255,
+        DEFAULT_OVERLAY_COLOR.g / 255,
+        DEFAULT_OVERLAY_COLOR.b / 255,
+        DEFAULT_OVERLAY_COLOR.a,
+      ),
+    );
+    controlPointOutlinePaint.setStyle(canvaskit.PaintStyle.Stroke);
+    controlPointOutlinePaint.setStrokeWidth(2);
+    controlPointOutlinePaint.setAntiAlias(true);
+    this.cachePaintCollection.set('controlPointOutlinePaint', controlPointOutlinePaint);
+
+    const controlPointFillPaint = new canvaskit.Paint();
+    controlPointFillPaint.setColor(canvaskit.Color4f(1, 1, 1, 1));
+    controlPointFillPaint.setStyle(canvaskit.PaintStyle.Fill);
+    controlPointFillPaint.setAntiAlias(true);
+    this.cachePaintCollection.set('controlPointFillPaint', controlPointFillPaint);
   }
 
   public getRootNode() {
     return this.rootNode;
   }
 
-  public getSelections() {
-    return this.selectedNodeIds;
+  public isNodeSelected(nodeId: string): boolean {
+    return this.selectedNodeIds.has(nodeId);
+  }
+
+  public getSelectionsCopy() {
+    return new Set(this.selectedNodeIds);
   }
 
   public getSelectionsBoundingArea(): Readonly<WondBoundingArea | null> {
@@ -150,19 +171,28 @@ export class WondSceneGraph {
     return this.hoverNode;
   }
 
-  public addSelection(nodeId: string) {
-    this.selectedNodeIds.add(nodeId);
-    this.markLayerTreeDirty();
+  private markSelectionChange() {
+    this.internalAPI.emitEvent('onSelectionChange', this.getSelectionsCopy());
   }
 
-  public deleteSelection(nodeId: string) {
-    this.selectedNodeIds.delete(nodeId);
-    this.markLayerTreeDirty();
-  }
-
-  public clearSelection() {
-    this.selectedNodeIds.clear();
-    this.markLayerTreeDirty();
+  public updateSelection(nodeSet: Set<string>) {
+    let isDirty = false;
+    for (const nodeId of nodeSet) {
+      if (!this.selectedNodeIds.has(nodeId)) {
+        this.selectedNodeIds.add(nodeId);
+        isDirty = true;
+      }
+    }
+    for (const nodeId of this.selectedNodeIds) {
+      if (!nodeSet.has(nodeId)) {
+        this.selectedNodeIds.delete(nodeId);
+        isDirty = true;
+      }
+    }
+    if (isDirty) {
+      this.markSelectionChange();
+      this.markLayerTreeDirty();
+    }
   }
 
   public getNodeById(id: string) {
@@ -182,16 +212,26 @@ export class WondSceneGraph {
   }
 
   pickNodesAtRange(range: BBox): WondGraphics[] {
-    return this.rTree.search(range);
+    const boundingIntersectedNodes = this.rTree.search(range);
+    const rangePoints = [
+      { x: range.minX, y: range.minY },
+      { x: range.maxX, y: range.minY },
+      { x: range.maxX, y: range.maxY },
+      { x: range.minX, y: range.maxY },
+    ];
+
+    return boundingIntersectedNodes.filter((node) => rangePoints.some((point) => node.containsPoint(point)));
   }
 
   pickNodeAtPoint(point: IWondPoint): WondGraphics | null {
-    const intersectedNodes = this.rTree.search({
-      minX: point.x,
-      minY: point.y,
-      maxX: point.x,
-      maxY: point.y,
-    });
+    const intersectedNodes = this.rTree
+      .search({
+        minX: point.x,
+        minY: point.y,
+        maxX: point.x,
+        maxY: point.y,
+      })
+      .filter((node) => node.containsPoint(point));
 
     if (intersectedNodes.length === 0) {
       return null;
@@ -251,7 +291,7 @@ export class WondSceneGraph {
       return;
     }
 
-    const { canvaskit, canvas, fontMgr, canvasTransform, cachePaintCollection } = context;
+    const { canvaskit, canvas, fontMgr, cachePaintCollection } = context;
 
     const overlayStrokePaint = cachePaintCollection.get('overlayStrokePaint');
     if (!overlayStrokePaint) {
@@ -271,18 +311,17 @@ export class WondSceneGraph {
     if (selectedNodeIds.length == 1) {
       const selectedNode = selectedNodes[0];
 
-      const transform = compose([canvasTransform, selectedNode.attrs.transform]);
+      const path = scenePathToPaintPath(selectedNode.getScenePath(), context.viewSpaceMeta);
+      boundingRectPath.addPath(path);
 
-      boundingRectPath.addRect(canvaskit.LTRBRect(0, 0, selectedNode.attrs.size.x, selectedNode.attrs.size.y));
-      boundingRectPath.transform(getMatrix3x3FromTransform(transform));
       canvas.drawPath(boundingRectPath, overlayStrokePaint);
 
-      edgePoints = applyToPoints(transform, [
+      edgePoints = applyToPoints(selectedNode.attrs.transform, [
         { x: 0, y: 0 },
         { x: selectedNode.attrs.size.x, y: 0 },
         { x: selectedNode.attrs.size.x, y: selectedNode.attrs.size.y },
         { x: 0, y: selectedNode.attrs.size.y },
-      ]);
+      ]).map((point) => sceneCoordsToPaintCoords(point, context.viewSpaceMeta));
 
       sizeText = `${+selectedNode.attrs.size.x.toFixed(2)} x ${+selectedNode.attrs.size.y.toFixed(2)}`;
     } else {
@@ -306,15 +345,15 @@ export class WondSceneGraph {
           targetSelectionArea.bottom,
         ),
       );
-      boundingRectPath.transform(getMatrix3x3FromTransform(canvasTransform));
+      scenePathToPaintPath(boundingRectPath, context.viewSpaceMeta);
       canvas.drawPath(boundingRectPath, overlayStrokePaint);
 
-      edgePoints = applyToPoints(canvasTransform, [
+      edgePoints = [
         { x: targetSelectionArea.left, y: targetSelectionArea.top },
         { x: targetSelectionArea.right, y: targetSelectionArea.top },
         { x: targetSelectionArea.right, y: targetSelectionArea.bottom },
         { x: targetSelectionArea.left, y: targetSelectionArea.bottom },
-      ]);
+      ].map((point) => sceneCoordsToPaintCoords(point, context.viewSpaceMeta));
 
       sizeText = `${targetSelectionArea.getWidth()} x ${targetSelectionArea.getHeight()}`;
     }
@@ -424,6 +463,51 @@ export class WondSceneGraph {
     canvas.restore();
   }
 
+  private drawControlPoints(context: WondGraphicDrawingContext) {
+    if (this.isSelectionMoveDragging) {
+      return;
+    }
+
+    const controlPoints = this.internalAPI.getControlPointManager().getControlPoints();
+    if (controlPoints.length === 0) {
+      return;
+    }
+
+    const { canvas, cachePaintCollection, canvaskit, viewSpaceMeta } = context;
+
+    const controlPointOutlinePaint = cachePaintCollection.get('controlPointOutlinePaint');
+    const controlPointFillPaint = cachePaintCollection.get('controlPointFillPaint');
+    if (!controlPointOutlinePaint || !controlPointFillPaint) {
+      return;
+    }
+
+    for (const controlPoint of controlPoints) {
+      if (!controlPoint.visible) {
+        continue;
+      }
+
+      const anchorScenePos = controlPoint.getAnchorScenePos();
+      const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
+      const anchorPath = new canvaskit.Path();
+      anchorPath.addRect(
+        canvaskit.LTRBRect(
+          anchorPaintPos.x - CONTROL_POINT_RADIUS,
+          anchorPaintPos.y - CONTROL_POINT_RADIUS,
+          anchorPaintPos.x + CONTROL_POINT_RADIUS,
+          anchorPaintPos.y + CONTROL_POINT_RADIUS,
+        ),
+      );
+
+      // apply graphic's skewX and skewY
+      anchorPath.transform(
+        getMatrix3x3FromTransform({ ...controlPoint.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
+      );
+
+      canvas.drawPath(anchorPath, controlPointOutlinePaint);
+      canvas.drawPath(anchorPath, controlPointFillPaint);
+    }
+  }
+
   private drawHover(context: WondGraphicDrawingContext) {
     if (this.isSelectionMoveDragging) {
       return;
@@ -448,7 +532,7 @@ export class WondSceneGraph {
     if (this.selectionRange === null) {
       return;
     }
-    const { canvaskit, canvas, canvasTransform, cachePaintCollection } = context;
+    const { canvaskit, canvas, cachePaintCollection } = context;
     const selectionRangeOutlinePaint = cachePaintCollection.get('selectionRangeOutlinePaint');
     const selectionRangeFillPaint = cachePaintCollection.get('selectionRangeFillPaint');
     if (!selectionRangeOutlinePaint || !selectionRangeFillPaint) {
@@ -464,7 +548,7 @@ export class WondSceneGraph {
       ),
     );
 
-    path.transform(getMatrix3x3FromTransform(canvasTransform));
+    scenePathToPaintPath(path, context.viewSpaceMeta);
     canvas.drawPath(path, selectionRangeOutlinePaint);
     canvas.drawPath(path, selectionRangeFillPaint);
   }
@@ -483,23 +567,20 @@ export class WondSceneGraph {
     this.drawHover(context);
     this.drawSelectionRange(context);
     this.drawSelections(context);
+    this.drawControlPoints(context);
   }
 
   private rafDraw() {
     const { canvaskit, fontMgr } = getCanvasKitContext();
 
     const drawFrame = (canvas: Canvas) => {
-      const viewportMeta = this.internalAPI.getCoordinateManager().getViewSpaceMeta();
-      const canvasTransform = compose([
-        scale(viewportMeta.zoom),
-        translate(viewportMeta.sceneScrollX, viewportMeta.sceneScrollY),
-      ]);
+      const viewSpaceMeta = this.internalAPI.getCoordinateManager().getViewSpaceMeta();
 
       const context: WondGraphicDrawingContext = {
         canvaskit,
         canvas,
         fontMgr,
-        canvasTransform,
+        viewSpaceMeta,
         cachePaintCollection: this.cachePaintCollection,
       };
 

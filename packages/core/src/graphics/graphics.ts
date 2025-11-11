@@ -1,10 +1,11 @@
 import { WondBoundingArea } from '../geo';
-import { type Matrix } from 'transformation-matrix';
-import type { WondGraphicDrawingContext } from '../types';
+import { applyToPoints, type Matrix } from 'transformation-matrix';
+import type { IWondPoint, WondGraphicDrawingContext } from '../types';
 import { getUuid } from '@wond/common';
 import { getCanvasKitContext } from '../context';
 import type { BBox } from 'rbush';
 import type { Path } from 'canvaskit-wasm';
+import { CornerResizeControlPoint, WondControlPointType, type IWondControlPoint } from '../control_point_manager';
 
 export const GraphicsType = {
   Document: 'document',
@@ -48,6 +49,7 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
   protected _scenePath: Path;
   protected _boundingArea: WondBoundingArea = new WondBoundingArea();
   private _svgString = '';
+  protected _controlPointsCache: Partial<Record<WondControlPointType, IWondControlPoint<WondGraphicsAttrs>>> = {};
 
   parentId?: string;
 
@@ -86,6 +88,56 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
     return false;
   }
 
+  public getScenePath(): Path {
+    return this._scenePath.copy();
+  }
+
+  public getControlPoints(): IWondControlPoint<WondGraphicsAttrs>[] {
+    // create or update the resize control points.
+    if (!this._controlPointsCache[WondControlPointType.NW_Resize]) {
+      this._controlPointsCache[WondControlPointType.NW_Resize] = new CornerResizeControlPoint(
+        this,
+        WondControlPointType.NW_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.NE_Resize]) {
+      this._controlPointsCache[WondControlPointType.NE_Resize] = new CornerResizeControlPoint(
+        this,
+        WondControlPointType.NE_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.SW_Resize]) {
+      this._controlPointsCache[WondControlPointType.SW_Resize] = new CornerResizeControlPoint(
+        this,
+        WondControlPointType.SW_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.SE_Resize]) {
+      this._controlPointsCache[WondControlPointType.SE_Resize] = new CornerResizeControlPoint(
+        this,
+        WondControlPointType.SE_Resize,
+      );
+    }
+
+    return [
+      WondControlPointType.NW_Resize,
+      WondControlPointType.NE_Resize,
+      WondControlPointType.SW_Resize,
+      WondControlPointType.SE_Resize,
+    ]
+      .map((type) => this._controlPointsCache[type]!)
+      .filter((point) => point !== undefined);
+  }
+
+  clearControlPoints() {}
+
+  public containsPoint(point: IWondPoint): boolean {
+    return this._scenePath.contains(point.x, point.y);
+  }
+
   public getBoundingArea(): WondBoundingArea {
     return this._boundingArea;
   }
@@ -93,8 +145,24 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
   protected generateScenePath() {}
 
   protected generateBoundingArea() {
-    const bounds = this._scenePath.computeTightBounds();
-    this._boundingArea.set(bounds[0], bounds[2], bounds[1], bounds[3]);
+    const points = applyToPoints(this.attrs.transform, [
+      { x: 0, y: 0 },
+      { x: this.attrs.size.x, y: 0 },
+      { x: this.attrs.size.x, y: this.attrs.size.y },
+      { x: 0, y: this.attrs.size.y },
+    ]);
+    const bounds = points.reduce<BBox>(
+      (acc, point) => {
+        return {
+          minX: Math.min(acc.minX, point.x),
+          minY: Math.min(acc.minY, point.y),
+          maxX: Math.max(acc.maxX, point.x),
+          maxY: Math.max(acc.maxY, point.y),
+        };
+      },
+      { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+    );
+    this._boundingArea.set(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
   }
 
   protected generateSvgShapeString() {
