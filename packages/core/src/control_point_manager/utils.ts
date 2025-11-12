@@ -34,38 +34,35 @@ export const getResizeBaseDegree = (type: WondControlPointType): number => {
   }
 };
 
-export const generateShapePath = (path: Path, shape: WondControlPointShape, anchorPos: IWondPoint) => {
-  if (anchorPos.x < 0 || anchorPos.y < 0) {
-    return;
-  }
-
+export const generateShapePath = (path: Path, shape: WondControlPointShape, anchorPaintPos: IWondPoint) => {
   const { canvaskit } = getCanvasKitContext();
   switch (shape) {
     case 'rect':
       path.addRect(
         canvaskit.LTRBRect(
-          anchorPos.x - CONTROL_POINT_RADIUS,
-          anchorPos.y - CONTROL_POINT_RADIUS,
-          anchorPos.x + CONTROL_POINT_RADIUS,
-          anchorPos.y + CONTROL_POINT_RADIUS,
+          anchorPaintPos.x - CONTROL_POINT_RADIUS,
+          anchorPaintPos.y - CONTROL_POINT_RADIUS,
+          anchorPaintPos.x + CONTROL_POINT_RADIUS,
+          anchorPaintPos.y + CONTROL_POINT_RADIUS,
         ),
       );
       break;
   }
 };
 
-export const generateDetectShapePath = (path: Path, shape: WondControlPointShape, anchorPos: IWondPoint) => {
-  if (anchorPos.x < 0 || anchorPos.y < 0) {
-    return;
-  }
-
+export const generateDetectShapePath = (path: Path, shape: WondControlPointShape, anchorPaintPos: IWondPoint) => {
   const radius = CONTROL_POINT_RADIUS + CONTROL_POINT_DETECT_THRESHOLD;
 
   const { canvaskit } = getCanvasKitContext();
   switch (shape) {
     case 'rect':
       path.addRect(
-        canvaskit.LTRBRect(anchorPos.x - radius, anchorPos.y - radius, anchorPos.x + radius, anchorPos.y + radius),
+        canvaskit.LTRBRect(
+          anchorPaintPos.x - radius,
+          anchorPaintPos.y - radius,
+          anchorPaintPos.x + radius,
+          anchorPaintPos.y + radius,
+        ),
       );
       break;
   }

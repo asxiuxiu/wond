@@ -1,22 +1,28 @@
-import type { Path } from 'canvaskit-wasm';
 import type { WondGraphics, WondGraphicsAttrs } from '../../graphics';
 import type { IWondControlPoint, WondControlPointShape, WondControlPointType } from '../types';
-import { getCanvasKitContext } from '../../context';
-import { generateDetectShapePath, generateShapePath } from '../utils';
-import type { IMouseEvent, IWondPoint } from '../../types';
-import { getMatrix3x3FromTransform } from '../../utils';
+import type { IMouseEvent } from '../../types';
 import type { IWondCursor } from '../../cursor_manager';
 import type { IWondInternalAPI } from '../../editor';
+import { getCanvasKitContext } from '../../context';
+import type { Path } from 'canvaskit-wasm';
 
 export class ControlPointBase<T extends WondGraphicsAttrs = WondGraphicsAttrs> implements IWondControlPoint<T> {
   refGraphic: WondGraphics<T>;
   type: WondControlPointType;
   visible = false;
   shape: WondControlPointShape = 'circle';
+  _cachePath: Path;
 
   constructor(graphics: WondGraphics<T>, type: WondControlPointType) {
     this.refGraphic = graphics;
     this.type = type;
+    const { canvaskit } = getCanvasKitContext();
+    this._cachePath = new canvaskit.Path();
+  }
+
+  public getCachePath(): Path {
+    this._cachePath.reset();
+    return this._cachePath;
   }
 
   public getAnchorScenePos() {

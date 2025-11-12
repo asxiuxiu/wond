@@ -5,6 +5,7 @@ import type { IWondCursor } from '../../cursor_manager';
 import type { IMouseEvent, IWondPoint } from '../../types';
 import { applyToPoint, type Matrix } from 'transformation-matrix';
 import type { IWondInternalAPI } from '../../editor';
+import { screenCoordsToSceneCoords } from '../../utils';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
@@ -31,6 +32,10 @@ export class CornerResizeControlPoint extends ControlPointBase {
 
   public onDragStart(event: IMouseEvent, internalAPI: IWondInternalAPI): void {
     this.originalTransform = { ...this.refGraphic.attrs.transform };
+    this.startPoint = screenCoordsToSceneCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
   }
 
   public onDrag(event: IMouseEvent, internalAPI: IWondInternalAPI) {

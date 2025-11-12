@@ -7,8 +7,14 @@ import type { WondCommand } from '../command_manager';
 import type { WondGraphicsAttrs } from '../graphics/graphics';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
-import type { IWondControlPoint } from '../control_point_manager';
-import { sceneCoordsToScreenCoords, screenCoordsToSceneCoords } from '../utils';
+import { generateDetectShapePath, type IWondControlPoint } from '../control_point_manager';
+import {
+  sceneCoordsToPaintCoords,
+  sceneCoordsToScreenCoords,
+  screenCoordsToPaintCoords,
+  screenCoordsToSceneCoords,
+  getMatrix3x3FromTransform,
+} from '../utils';
 
 export class ToolMove extends ToolBase {
   private startPoint: IWondPoint | null = null;
@@ -30,15 +36,25 @@ export class ToolMove extends ToolBase {
   }
 
   private tryPickControlPoint(
-    point: IWondPoint,
+    paintPoint: IWondPoint,
     internalAPI: IWondInternalAPI,
   ): IWondControlPoint<WondGraphicsAttrs> | null {
     const controlPoints = internalAPI.getControlPointManager().getControlPoints();
     for (let i = controlPoints.length - 1; i >= 0; i--) {
       const controlPoint = controlPoints[i];
-      // if (controlPoint.containsPoint(point)) {
-      //   return controlPoint;
-      // }
+      const anchorScenePos = controlPoint.getAnchorScenePos();
+      const anchorPaintPos = sceneCoordsToPaintCoords(
+        anchorScenePos,
+        internalAPI.getCoordinateManager().getViewSpaceMeta(),
+      );
+      const detectionPath = controlPoint.getCachePath();
+      generateDetectShapePath(detectionPath, controlPoint.shape, anchorPaintPos);
+      detectionPath.transform(
+        getMatrix3x3FromTransform({ ...controlPoint.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
+      );
+      if (detectionPath.contains(paintPoint.x, paintPoint.y)) {
+        return controlPoint;
+      }
     }
 
     return null;
@@ -50,12 +66,12 @@ export class ToolMove extends ToolBase {
       return;
     }
 
-    const lastMouseMoveScenePoint = screenCoordsToSceneCoords(
+    const lastMouseMovePaintPoint = screenCoordsToPaintCoords(
       { x: lastMouseMoveEvent.clientX, y: lastMouseMoveEvent.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
-    const targetControlPoint = this.tryPickControlPoint(lastMouseMoveScenePoint, internalAPI);
+    const targetControlPoint = this.tryPickControlPoint(lastMouseMovePaintPoint, internalAPI);
     if (targetControlPoint) {
       internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
       return;
@@ -70,7 +86,11 @@ export class ToolMove extends ToolBase {
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
-    const targetControlPoint = this.tryPickControlPoint(this.startPoint, internalAPI);
+    const startPaintPoint = screenCoordsToPaintCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
+    const targetControlPoint = this.tryPickControlPoint(startPaintPoint, internalAPI);
     if (targetControlPoint) {
       // ready to process drag event for control point.
       this.targetControlPoint = targetControlPoint;
@@ -119,7 +139,11 @@ export class ToolMove extends ToolBase {
     );
 
     // justify if the point hover the ControlPoint.
-    const targetControlPoint = this.tryPickControlPoint(hoverPoint, internalAPI);
+    const hoverPaintPoint = screenCoordsToPaintCoords(
+      { x: event.clientX, y: event.clientY },
+      internalAPI.getCoordinateManager().getViewSpaceMeta(),
+    );
+    const targetControlPoint = this.tryPickControlPoint(hoverPaintPoint, internalAPI);
     if (targetControlPoint) {
       internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
       return;

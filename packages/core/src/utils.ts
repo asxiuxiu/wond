@@ -29,7 +29,7 @@ export const sceneCoordsToScreenCoords = (scenePoint: IWondPoint, viewSpaceMeta:
 };
 
 export const screenCoordsToPaintCoords = (screenPoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {
-  return applyToPoint(translate(viewSpaceMeta.viewportOffsetX, viewSpaceMeta.viewportOffsetY), screenPoint);
+  return applyToPoint(translate(-viewSpaceMeta.viewportOffsetX, -viewSpaceMeta.viewportOffsetY), screenPoint);
 };
 
 export const sceneCoordsToPaintCoords = (scenePoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {

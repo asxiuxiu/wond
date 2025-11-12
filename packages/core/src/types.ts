@@ -1,5 +1,4 @@
 import type { Canvas, CanvasKit, FontMgr, Paint } from 'canvaskit-wasm';
-import type { Matrix } from 'transformation-matrix';
 
 declare global {
   interface QueryLocalFontsOptions {

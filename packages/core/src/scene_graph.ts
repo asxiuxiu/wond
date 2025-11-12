@@ -1,16 +1,16 @@
+import { compareCoordinates, throttle } from '@wond/common';
 import { type Canvas, type Paint, type Surface } from 'canvaskit-wasm';
-import { WondDocument } from './graphics/document';
+import RBush, { type BBox } from 'rbush';
+import { applyToPoints } from 'transformation-matrix';
 import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
-import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
-import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
-import { applyToPoint, applyToPoints, compose, decomposeTSR, scale, translate } from 'transformation-matrix';
-import { getMatrix3x3FromTransform, sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
 import { getCanvasKitContext } from './context';
 import type { IWondInternalAPI } from './editor';
+import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
 import type { WondGraphics } from './graphics';
-import { compareCoordinates, throttle } from '@wond/common';
-import RBush, { type BBox } from 'rbush';
-import { CONTROL_POINT_RADIUS } from './control_point_manager/constants';
+import { WondDocument } from './graphics/document';
+import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
+import { getMatrix3x3FromTransform, sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
+import { generateShapePath } from './control_point_manager';
 
 export class WondSceneGraph {
   private readonly internalAPI: IWondInternalAPI;
@@ -213,14 +213,20 @@ export class WondSceneGraph {
 
   pickNodesAtRange(range: BBox): WondGraphics[] {
     const boundingIntersectedNodes = this.rTree.search(range);
-    const rangePoints = [
-      { x: range.minX, y: range.minY },
-      { x: range.maxX, y: range.minY },
-      { x: range.maxX, y: range.maxY },
-      { x: range.minX, y: range.maxY },
-    ];
 
-    return boundingIntersectedNodes.filter((node) => rangePoints.some((point) => node.containsPoint(point)));
+    const { canvaskit } = getCanvasKitContext();
+
+    const selectionPath = new canvaskit.Path();
+    selectionPath.addRect(canvaskit.LTRBRect(range.minX, range.minY, range.maxX, range.maxY));
+
+    return boundingIntersectedNodes.filter((node) => {
+      const intersectionPath = canvaskit.Path.MakeFromOp(
+        node.getScenePath(),
+        selectionPath,
+        canvaskit.PathOp.Intersect,
+      );
+      return intersectionPath != null && intersectionPath.isEmpty() === false;
+    });
   }
 
   pickNodeAtPoint(point: IWondPoint): WondGraphics | null {
@@ -473,7 +479,7 @@ export class WondSceneGraph {
       return;
     }
 
-    const { canvas, cachePaintCollection, canvaskit, viewSpaceMeta } = context;
+    const { canvas, cachePaintCollection, viewSpaceMeta } = context;
 
     const controlPointOutlinePaint = cachePaintCollection.get('controlPointOutlinePaint');
     const controlPointFillPaint = cachePaintCollection.get('controlPointFillPaint');
@@ -487,16 +493,13 @@ export class WondSceneGraph {
       }
 
       const anchorScenePos = controlPoint.getAnchorScenePos();
+      if (anchorScenePos.x < 0 || anchorScenePos.y < 0) {
+        continue;
+      }
+
       const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
-      const anchorPath = new canvaskit.Path();
-      anchorPath.addRect(
-        canvaskit.LTRBRect(
-          anchorPaintPos.x - CONTROL_POINT_RADIUS,
-          anchorPaintPos.y - CONTROL_POINT_RADIUS,
-          anchorPaintPos.x + CONTROL_POINT_RADIUS,
-          anchorPaintPos.y + CONTROL_POINT_RADIUS,
-        ),
-      );
+      const anchorPath = controlPoint.getCachePath();
+      generateShapePath(anchorPath, controlPoint.shape, anchorPaintPos);
 
       // apply graphic's skewX and skewY
       anchorPath.transform(

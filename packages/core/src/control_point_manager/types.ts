@@ -29,6 +29,7 @@ export interface IWondControlPoint<T extends WondGraphicsAttrs> {
   shape: WondControlPointShape;
   refGraphic: WondGraphics<T>;
   getAnchorScenePos(): IWondPoint;
+  getCachePath(): Path;
   getCursor(): IWondCursor;
   onDragStart(event: IMouseEvent, internalAPI: IWondInternalAPI): void;
   onDrag(event: IMouseEvent, internalAPI: IWondInternalAPI): Partial<T> | void;
