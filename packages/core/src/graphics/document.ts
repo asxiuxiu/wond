@@ -1,11 +1,10 @@
-import type { IWondColor, WondGraphicDrawingContext } from '../types';
-import { WondGraphics, type WondGraphicsAttrs } from './graphics';
+import type { IWondColor, WondGraphicDrawingContext, IGraphicsAttrs, IGraphics, IBoundingArea } from '../interfaces';
+import { WondGraphics } from './graphics';
 import { ZERO_BOUNDING_AREA } from '../constants';
-import type { WondBoundingArea } from '../geo';
 
-export interface WondDocumentAttrs extends WondGraphicsAttrs {
+export interface WondDocumentAttrs extends IGraphicsAttrs {
   backgroundColor: IWondColor;
-  children: WondGraphics[];
+  children: IGraphics[];
 }
 
 export class WondDocument extends WondGraphics<WondDocumentAttrs> {
@@ -38,7 +37,7 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
     );
   }
 
-  getBoundingArea(): WondBoundingArea {
+  getBoundingArea(): IBoundingArea {
     return ZERO_BOUNDING_AREA;
   }
 

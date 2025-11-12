@@ -1,31 +1,29 @@
 import { ToolBase } from './tool_base';
-import { type IMouseEvent, type ViewSpaceMeta } from '../types';
-import { type IWondPoint } from '../types';
-import type { IWondInternalAPI } from '../editor';
+import type { IMouseEvent, ViewSpaceMeta, IWondPoint, IInternalAPI } from '../interfaces';
 import { screenCoordsToSceneCoords } from '../utils';
 
 export class ToolHand extends ToolBase {
   private startPoint: IWondPoint | null = null;
   private originalViewSpaceMeta: ViewSpaceMeta | null = null;
 
-  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IInternalAPI) => {
     internalAPI.getCursorManager().setCursor('grab');
   };
 
-  onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onStart = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.originalViewSpaceMeta = { ...internalAPI.getCoordinateManager().getViewSpaceMeta() };
 
     this.startPoint = screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
   };
-  onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onDrag = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.onDragScene(event, internalAPI);
   };
 
-  onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onEnd = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.onDragScene(event, internalAPI);
   };
 
-  private onDragScene = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  private onDragScene = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     if (!this.startPoint || !this.originalViewSpaceMeta) return;
     const endPoint = screenCoordsToSceneCoords({ x: event.clientX, y: event.clientY }, this.originalViewSpaceMeta);
 

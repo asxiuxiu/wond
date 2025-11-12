@@ -1,17 +1,13 @@
-import type { WondControlPointShape } from '../types';
-import { getResizeBaseDegree, getResizeControlPointNormalizedPos } from '../utils';
+import type { WondControlPointShape, IMouseEvent, IWondPoint, IInternalAPI } from '../../interfaces';
+import { getResizeBaseDegree, getResizeControlPointNormalizedPos, screenCoordsToSceneCoords } from '../../utils';
 import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
-import type { IMouseEvent, IWondPoint } from '../../types';
-import { applyToPoint, type Matrix } from 'transformation-matrix';
-import type { IWondInternalAPI } from '../../editor';
-import { screenCoordsToSceneCoords } from '../../utils';
+import { applyToPoint } from 'transformation-matrix';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
   visible: boolean = true;
 
-  private originalTransform: Matrix | null = null;
   private startPoint: IWondPoint | null = null;
 
   private getNormalizedPos() {
@@ -30,19 +26,18 @@ export class CornerResizeControlPoint extends ControlPointBase {
     return { type: 'resize', degree: getResizeBaseDegree(this.type) };
   }
 
-  public onDragStart(event: IMouseEvent, internalAPI: IWondInternalAPI): void {
-    this.originalTransform = { ...this.refGraphic.attrs.transform };
+  public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {
     this.startPoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
   }
 
-  public onDrag(event: IMouseEvent, internalAPI: IWondInternalAPI) {
+  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI) {
     if (!this.startPoint) return;
   }
 
-  public onDragEnd(event: IMouseEvent, internalAPI: IWondInternalAPI) {
+  public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI) {
     return;
   }
 }

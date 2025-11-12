@@ -1,10 +1,7 @@
-import type { IWondInternalAPI } from './editor';
-import type { IWondPoint, ViewSpaceMeta } from './types';
-import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
-import { getMatrix3x3FromTransform, screenCoordsToSceneCoords } from './utils';
-import type { Path } from 'canvaskit-wasm';
+import type { IInternalAPI, IWondPoint, ViewSpaceMeta, ICoordinateManager } from './interfaces';
+import { screenCoordsToSceneCoords } from './utils';
 
-export class WondCoordinateManager {
+export class WondCoordinateManager implements ICoordinateManager {
   private readonly canvasElement: HTMLCanvasElement;
 
   private viewSpaceMeta: ViewSpaceMeta = {
@@ -15,7 +12,7 @@ export class WondCoordinateManager {
     zoom: 1,
   };
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.canvasElement = internalAPI.getCanvasRootElement();
     this.initViewportMeta();
   }

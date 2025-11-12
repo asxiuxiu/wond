@@ -1,14 +1,11 @@
 import { ToolBase } from './tool_base';
-import { type IMouseEvent, type IWondPoint } from '../types';
-import type { IWondInternalAPI } from '../editor';
+import type { IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs, ICommand, IWondControlPoint } from '../interfaces';
 import type { BBox } from 'rbush';
 import type { Matrix } from 'transformation-matrix';
-import type { WondCommand } from '../command_manager';
-import type { WondGraphicsAttrs } from '../graphics/graphics';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
-import { generateDetectShapePath, type IWondControlPoint } from '../control_point_manager';
 import {
+  generateDetectShapePath,
   sceneCoordsToPaintCoords,
   sceneCoordsToScreenCoords,
   screenCoordsToPaintCoords,
@@ -18,14 +15,14 @@ import {
 
 export class ToolMove extends ToolBase {
   private startPoint: IWondPoint | null = null;
-  private command: WondCommand | null = null;
+  private command: ICommand | null = null;
 
   private isModifyingSelection = false;
   private modifyingNodeStartTransformMap: Map<string, Matrix> = new Map();
 
-  private targetControlPoint: IWondControlPoint<WondGraphicsAttrs> | null = null;
+  private targetControlPoint: IWondControlPoint<IGraphicsAttrs> | null = null;
 
-  private getCommand(internalAPI: IWondInternalAPI) {
+  private getCommand(internalAPI: IInternalAPI) {
     if (!this.command) {
       3;
       this.command = internalAPI.getCommandManager().createCommand();
@@ -37,8 +34,8 @@ export class ToolMove extends ToolBase {
 
   private tryPickControlPoint(
     paintPoint: IWondPoint,
-    internalAPI: IWondInternalAPI,
-  ): IWondControlPoint<WondGraphicsAttrs> | null {
+    internalAPI: IInternalAPI,
+  ): IWondControlPoint<IGraphicsAttrs> | null {
     const controlPoints = internalAPI.getControlPointManager().getControlPoints();
     for (let i = controlPoints.length - 1; i >= 0; i--) {
       const controlPoint = controlPoints[i];
@@ -60,7 +57,7 @@ export class ToolMove extends ToolBase {
     return null;
   }
 
-  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IInternalAPI) => {
     if (lastMouseMoveEvent === null) {
       internalAPI.getCursorManager().setCursor('default');
       return;
@@ -80,7 +77,7 @@ export class ToolMove extends ToolBase {
     internalAPI.getCursorManager().setCursor('default');
   };
 
-  onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onStart = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.startPoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
@@ -132,7 +129,7 @@ export class ToolMove extends ToolBase {
     }
   };
 
-  onMove = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onMove = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     const hoverPoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
@@ -160,7 +157,7 @@ export class ToolMove extends ToolBase {
     }
   };
 
-  onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onDrag = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     if (!this.startPoint) return;
 
     if (this.targetControlPoint) {
@@ -216,7 +213,7 @@ export class ToolMove extends ToolBase {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
         if (node) {
           this.getCommand(internalAPI).addOperations([
-            new WondUpdatePropertyOperation<WondGraphicsAttrs>(node, {
+            new WondUpdatePropertyOperation<IGraphicsAttrs>(node, {
               transform: {
                 ...startTransform,
                 e: Math.round(startTransform.e + (endPoint.x - this.startPoint!.x)),
@@ -229,7 +226,7 @@ export class ToolMove extends ToolBase {
     }
   };
 
-  onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {
+  onEnd = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.isModifyingSelection = false;
     this.modifyingNodeStartTransformMap.clear();
 

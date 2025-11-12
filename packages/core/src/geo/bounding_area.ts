@@ -1,6 +1,6 @@
-import type { IWondPoint } from '../types';
+import type { IWondPoint, IBoundingArea } from '../interfaces';
 
-export class WondBoundingArea {
+export class WondBoundingArea implements IBoundingArea {
   left: number;
   right: number;
   top: number;
@@ -20,7 +20,7 @@ export class WondBoundingArea {
     this.bottom = bottom;
   }
 
-  union(area: WondBoundingArea): WondBoundingArea {
+  union(area: IBoundingArea): IBoundingArea {
     const left = Math.min(this.left, area.left);
     const right = Math.max(this.right, area.right);
     const top = Math.min(this.top, area.top);
@@ -28,7 +28,7 @@ export class WondBoundingArea {
     return new WondBoundingArea(left, right, top, bottom);
   }
 
-  intersect(area: WondBoundingArea): WondBoundingArea {
+  intersect(area: IBoundingArea): IBoundingArea {
     const left = Math.max(this.left, area.left);
     const right = Math.min(this.right, area.right);
     const top = Math.max(this.top, area.top);
@@ -40,7 +40,7 @@ export class WondBoundingArea {
     return this.left <= point.x && this.right >= point.x && this.top <= point.y && this.bottom >= point.y;
   }
 
-  contains(area: WondBoundingArea) {
+  contains(area: IBoundingArea): boolean {
     return this.left <= area.left && this.right >= area.right && this.top <= area.top && this.bottom >= area.bottom;
   }
 

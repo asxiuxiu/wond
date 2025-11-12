@@ -1,5 +1,5 @@
 import { WondBoundingArea } from './geo';
-import type { IWondColor } from './types';
+import type { IWondColor } from './interfaces';
 
 export const ZERO_BOUNDING_AREA = new WondBoundingArea(0, 0, 0, 0);
 export const DEFAULT_OVERLAY_COLOR: IWondColor = { r: 13, g: 153, b: 255, a: 1 };

@@ -1,4 +1,4 @@
-import type { IWondInternalAPI } from './editor';
+import type { IInternalAPI } from './interfaces';
 
 export interface IWondBindingHotkey {
   ctrlKey?: boolean;
@@ -22,7 +22,7 @@ export class WondKeybindingManager {
   private readonly keybindingMap = new Map<number, IWondKeybinding>();
   private id = 0;
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     // this.internalAPI = internalAPI;
     this.bindEvent();
   }

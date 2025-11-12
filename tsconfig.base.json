@@ -3,11 +3,7 @@
     "target": "ESNEXT",
     "module": "ESNext",
     "esModuleInterop": true,
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -20,14 +16,8 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
     "paths": {
-      "@wond/*": [
-        "./packages/*/src"
-      ]
+      "@wond/*": ["./packages/*/src"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "rollup.config.ts"
-  ]
+  "exclude": ["node_modules", "dist", "rollup.config.ts"]
 }

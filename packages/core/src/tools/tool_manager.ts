@@ -1,16 +1,14 @@
-import type { IWondInternalAPI } from '../editor';
-import { MouseEventButton, type IMouseEvent } from '../types';
-import { type ToolBase } from './tool_base';
+import type { IInternalAPI, IMouseEvent, IToolManager, ITool } from '../interfaces';
+import { MouseEventButton, WondToolType } from '../interfaces';
 import { ToolDrawRect } from './tool_draw_rect';
 import { ToolHand } from './tool_hand';
 import { ToolMove } from './tool_move';
-import { WondToolType } from './types';
 
-export class WondToolManager {
+export class WondToolManager implements IToolManager {
   private activeToolType: WondToolType;
-  private activeTool: ToolBase; // the active tool is not always the same as the active tool type
-  private readonly internalAPI: IWondInternalAPI;
-  private tools: Record<WondToolType, ToolBase> = {
+  private activeTool: ITool;
+  private readonly internalAPI: IInternalAPI;
+  private tools: Record<WondToolType, ITool> = {
     [WondToolType.DrawRect]: new ToolDrawRect(),
     [WondToolType.Hand]: new ToolHand(),
     [WondToolType.Move]: new ToolMove(),
@@ -18,13 +16,13 @@ export class WondToolManager {
 
   private lastMouseMoveEvent: IMouseEvent | null = null;
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.internalAPI = internalAPI;
     this.activeToolType = WondToolType.Move;
     this.activeTool = this.getToolByType(this.activeToolType);
   }
 
-  private getToolByType(toolType: WondToolType): ToolBase {
+  private getToolByType(toolType: WondToolType): ITool {
     const tool = this.tools[toolType];
     if (!tool) {
       throw new Error(`Tool ${toolType} not found`);
@@ -36,7 +34,7 @@ export class WondToolManager {
     return this.activeToolType;
   }
 
-  setActiveToolByType(toolType: WondToolType, emitEvent = true) {
+  setActiveToolByType(toolType: WondToolType, emitEvent = true): void {
     if (this.activeToolType === toolType && this.activeTool === this.getToolByType(toolType)) {
       return;
     }
@@ -47,12 +45,12 @@ export class WondToolManager {
     }
   }
 
-  setActiveTool(tool: ToolBase) {
+  setActiveTool(tool: ITool): void {
     this.activeTool = tool;
     this.activeTool.onActive(this.lastMouseMoveEvent, this.internalAPI);
   }
 
-  onStart = (event: IMouseEvent) => {
+  onStart = (event: IMouseEvent): void => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
@@ -63,7 +61,7 @@ export class WondToolManager {
     this.activeTool.onStart(event, this.internalAPI);
   };
 
-  onDrag = (event: IMouseEvent) => {
+  onDrag = (event: IMouseEvent): void => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
@@ -71,7 +69,7 @@ export class WondToolManager {
     this.activeTool.onDrag(event, this.internalAPI);
   };
 
-  onMove = (event: IMouseEvent) => {
+  onMove = (event: IMouseEvent): void => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
@@ -79,7 +77,7 @@ export class WondToolManager {
     this.lastMouseMoveEvent = event;
   };
 
-  onEnd = (event: IMouseEvent) => {
+  onEnd = (event: IMouseEvent): void => {
     if (event.button === MouseEventButton.Right) {
       return;
     }
@@ -90,7 +88,7 @@ export class WondToolManager {
     }
   };
 
-  onContextMenu = (event: IMouseEvent) => {
+  onContextMenu = (event: IMouseEvent): void => {
     // TODO
   };
 }

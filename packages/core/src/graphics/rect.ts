@@ -1,10 +1,11 @@
-import { GraphicsType, WondGraphics, type WondGraphicsAttrs } from './graphics';
-import type { WondGraphicDrawingContext } from '../types';
+import { WondGraphics } from './graphics';
+import type { IGraphicsAttrs, WondGraphicDrawingContext } from '../interfaces';
+import { GraphicsType } from '../interfaces';
 import { DEFAULT_FILL_COLOR } from '../constants';
-import { getMatrix3x3FromTransform, scenePathToPaintPath } from '../utils';
+import { scenePathToPaintPath, getMatrix3x3FromTransform } from '../utils';
 import { getCanvasKitContext } from '../context';
 
-export interface WondRectAttrs extends WondGraphicsAttrs {
+export interface WondRectAttrs extends IGraphicsAttrs {
   radius?: number;
 }
 

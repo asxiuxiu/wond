@@ -1,12 +1,12 @@
 import './index.scss';
-import type { WondGraphics } from '@wond/core';
+import type { IGraphics } from '@wond/core';
 import classNames from 'classnames';
 import { type RowComponentProps } from 'react-window';
 import lockedIcon from './locked.svg';
 import { useEditor } from '@/context/useEditor';
 
 export interface LayerNodeData {
-  data: WondGraphics;
+  data: IGraphics;
   nestingLevel: number;
   isSelected: boolean;
   isHovered: boolean;

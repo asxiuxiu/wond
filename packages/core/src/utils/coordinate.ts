@@ -1,11 +1,11 @@
-import type { Matrix3x3, Path } from 'canvaskit-wasm';
-import { applyToPoint, compose, scale, translate, type Matrix } from 'transformation-matrix';
-import type { IWondPoint, ViewSpaceMeta } from './types';
+import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
+import type { IWondPoint, ViewSpaceMeta } from '../interfaces';
+import { getMatrix3x3FromTransform } from './transform';
+import type { Path } from 'canvaskit-wasm';
 
-export const getMatrix3x3FromTransform = (transform: Matrix): Matrix3x3 => {
-  return Float32Array.from([transform.a, transform.c, transform.e, transform.b, transform.d, transform.f, 0, 0, 1]);
-};
-
+/**
+ * Convert screen coordinates to scene coordinates
+ */
 export const screenCoordsToSceneCoords = (screenPoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {
   return applyToPoint(
     compose([
@@ -17,6 +17,9 @@ export const screenCoordsToSceneCoords = (screenPoint: IWondPoint, viewSpaceMeta
   );
 };
 
+/**
+ * Convert scene coordinates to screen coordinates
+ */
 export const sceneCoordsToScreenCoords = (scenePoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {
   return applyToPoint(
     compose([
@@ -28,15 +31,28 @@ export const sceneCoordsToScreenCoords = (scenePoint: IWondPoint, viewSpaceMeta:
   );
 };
 
+/**
+ * Convert screen coordinates to paint coordinates
+ */
 export const screenCoordsToPaintCoords = (screenPoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {
   return applyToPoint(translate(-viewSpaceMeta.viewportOffsetX, -viewSpaceMeta.viewportOffsetY), screenPoint);
 };
 
+/**
+ * Convert scene coordinates to paint coordinates
+ */
 export const sceneCoordsToPaintCoords = (scenePoint: IWondPoint, viewSpaceMeta: ViewSpaceMeta): IWondPoint => {
   return applyToPoint(
     compose([scale(viewSpaceMeta.zoom), translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY)]),
     scenePoint,
   );
+};
+
+/**
+ * Convert scene length to screen length
+ */
+export const sceneLengthToScreenLength = (length: number, viewSpaceMeta: ViewSpaceMeta): number => {
+  return length * viewSpaceMeta.zoom;
 };
 
 export const scenePathToPaintPath = (scenePath: Path, viewSpaceMeta: ViewSpaceMeta): Path => {
@@ -45,8 +61,4 @@ export const scenePathToPaintPath = (scenePath: Path, viewSpaceMeta: ViewSpaceMe
     translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY),
   ]);
   return scenePath.transform(getMatrix3x3FromTransform(transform));
-};
-
-export const sceneLengthToScreenLength = (length: number, viewSpaceMeta: ViewSpaceMeta): number => {
-  return length * viewSpaceMeta.zoom;
 };

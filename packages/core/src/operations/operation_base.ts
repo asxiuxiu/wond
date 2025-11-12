@@ -1,21 +1,13 @@
-import { WondSceneGraph } from '../scene_graph';
-import { WondBoundingArea } from '../geo';
 import { getUuid } from '@wond/common';
+import type { IOperation, ISceneGraph } from '../interfaces';
 
-/**
- * Operation is an atomic operation
- */
-export class WondOperation {
+export class WondOperation implements IOperation {
   readonly id: string = getUuid();
 
-  execute = (sceneGraph: WondSceneGraph): void => {
+  execute = (sceneGraph: ISceneGraph): void => {
     throw new Error('Method not implemented.');
   };
-  undo = (sceneGraph: WondSceneGraph): void => {
-    throw new Error('Method not implemented.');
-  };
-
-  getDirtyBoundingArea = (): WondBoundingArea => {
+  undo = (sceneGraph: ISceneGraph): void => {
     throw new Error('Method not implemented.');
   };
 }

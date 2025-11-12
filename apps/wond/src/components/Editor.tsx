@@ -1,13 +1,13 @@
 import './Editor.scss';
 import React, { useEffect, useRef, useState } from 'react';
-import { initWondEditor, type WondEditor } from '@wond/core';
+import { initWondEditor, type IWondEditor } from '@wond/core';
 import LeftPanel from './left_panel/index';
 import RightPanel from './right_panel/index';
 import { EditorContext } from '@/context/editor-context';
 import { ToolBar } from './tool';
 
 const Editor: React.FC = () => {
-  const [editor, setEditor] = useState<WondEditor | null>(null);
+  const [editor, setEditor] = useState<IWondEditor | null>(null);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 

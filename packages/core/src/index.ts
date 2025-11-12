@@ -1,4 +1,4 @@
 export { initWondEditor } from './editor_factory';
-export type { WondEditorOptions, WondEditor } from './editor';
-export type { WondGraphics } from './graphics';
-export * from './tools/types';
+export type { IEditor as IWondEditor, IEditorOptions as IWondEditorOptions } from './interfaces';
+export type { IGraphics } from './interfaces';
+export { WondToolType } from './interfaces';

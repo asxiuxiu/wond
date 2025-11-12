@@ -1,6 +1,6 @@
 import { EventEmitter } from '@wond/common';
-import { MouseEventButton, type IMouseEvent } from './types';
-import type { IWondInternalAPI } from './editor';
+import type { IMouseEvent, IInternalAPI, IHostEventManager } from './interfaces';
+import { MouseEventButton } from './interfaces';
 
 interface IHostEvent {
   start(event: IMouseEvent): void;
@@ -11,7 +11,7 @@ interface IHostEvent {
   wheel(event: IMouseEvent): void;
 }
 
-export class WondHostEventManager {
+export class WondHostEventManager implements IHostEventManager {
   private readonly hostElement: HTMLCanvasElement;
   private readonly eventEmitter = new EventEmitter<IHostEvent>();
 
@@ -23,7 +23,7 @@ export class WondHostEventManager {
     button: null,
   };
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.hostElement = internalAPI.getCanvasRootElement();
     this.bindEvents();
   }

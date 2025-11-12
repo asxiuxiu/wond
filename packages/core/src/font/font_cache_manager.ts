@@ -8,9 +8,7 @@ export class FontCacheManager {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
-      request.onerror = (event) => {
-        
-      };
+      request.onerror = (event) => {};
 
       request.onsuccess = (event) => {};
     });

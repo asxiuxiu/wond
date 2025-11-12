@@ -3,7 +3,7 @@ import { useEditor } from '@/context/useEditor';
 import { useCallback, useEffect, useState } from 'react';
 import { List } from 'react-window';
 import { LayerNode, type LayerNodeData } from '../layer_node';
-import type { WondGraphics } from '@wond/core';
+import type { IGraphics } from '@wond/core';
 
 export const LayerTree = () => {
   const { editor, loading } = useEditor();
@@ -24,7 +24,7 @@ export const LayerTree = () => {
   useEffect(() => {
     if (!editor) return;
 
-    const traverseTree = (node: WondGraphics, flattenedNodes: LayerNodeData[], nestingLevel: number) => {
+    const traverseTree = (node: IGraphics, flattenedNodes: LayerNodeData[], nestingLevel: number) => {
       const isOpened = openedNodes.has(node.attrs.id);
 
       flattenedNodes.push({

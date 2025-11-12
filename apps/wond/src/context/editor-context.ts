@@ -1,8 +1,8 @@
-import type { WondEditor } from '@wond/core';
+import type { IWondEditor } from '@wond/core';
 import { createContext } from 'react';
 
 export const EditorContext = createContext<{
-  editor: WondEditor | null;
+  editor: IWondEditor | null;
   loading: boolean;
 }>({
   editor: null,

@@ -1,4 +1,4 @@
-import type { IWondEdge } from '../types';
+import type { IWondEdge } from '../interfaces';
 
 export const calculateEdgeAngle = (edge: IWondEdge) => {
   const dx = edge.end.x - edge.start.x;

@@ -1,9 +1,10 @@
 import './cursor.css';
 
 import { isEqual } from '@wond/common';
-import type { IWondInternalAPI } from '../editor';
+import type { IInternalAPI } from '../interfaces';
 import { normalizeDegree } from '../geo/angle';
 import { getIconSvgDataUrl } from './util';
+import type { ICursorManager } from '../interfaces';
 
 export type IWondCursor =
   | 'default'
@@ -12,11 +13,11 @@ export type IWondCursor =
   | { type: 'rotation'; degree: number }
   | 'crosshair';
 
-export class WondCursorManager {
+export class WondCursorManager implements ICursorManager {
   private hostElement: HTMLCanvasElement;
   private cursor: IWondCursor | null = null;
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.hostElement = internalAPI.getCanvasRootElement();
     this.setCursor('default');
   }

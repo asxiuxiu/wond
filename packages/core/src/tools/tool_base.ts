@@ -1,10 +1,9 @@
-import type { IWondInternalAPI } from '../editor';
-import { type IMouseEvent } from '../types';
+import type { IInternalAPI, IMouseEvent, ITool } from '../interfaces';
 
-export class ToolBase {
-  onStart = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
-  onDrag = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
-  onMove = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
-  onEnd = (event: IMouseEvent, internalAPI: IWondInternalAPI) => {};
-  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IWondInternalAPI) => {};
+export class ToolBase implements ITool {
+  onStart = (event: IMouseEvent, internalAPI: IInternalAPI) => {};
+  onDrag = (event: IMouseEvent, internalAPI: IInternalAPI) => {};
+  onMove = (event: IMouseEvent, internalAPI: IInternalAPI) => {};
+  onEnd = (event: IMouseEvent, internalAPI: IInternalAPI) => {};
+  onActive = (lastMouseMoveEvent: IMouseEvent | null, internalAPI: IInternalAPI) => {};
 }

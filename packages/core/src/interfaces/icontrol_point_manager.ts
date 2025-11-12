@@ -1,8 +1,9 @@
 import type { Path } from 'canvaskit-wasm';
-import type { WondGraphics, WondGraphicsAttrs } from '../graphics/graphics';
-import type { IMouseEvent, IWondPoint } from '../types';
+import type { IGraphicsAttrs, IGraphics } from './igraphics';
+import type { IMouseEvent } from './ihost_event_manager';
+import type { IWondPoint } from './itypes';
 import type { IWondCursor } from '../cursor_manager';
-import type { IWondInternalAPI } from '../editor';
+import type { IInternalAPI } from './iinternal_api';
 
 export const WondControlPointType = {
   N_Resize: 'n_resize',
@@ -23,15 +24,20 @@ export type WondControlPointType = (typeof WondControlPointType)[keyof typeof Wo
 
 export type WondControlPointShape = 'rect' | 'circle' | 'circle_with_point';
 
-export interface IWondControlPoint<T extends WondGraphicsAttrs> {
+export interface IWondControlPoint<T extends IGraphicsAttrs> {
   type: WondControlPointType;
   visible: boolean;
   shape: WondControlPointShape;
-  refGraphic: WondGraphics<T>;
+  refGraphic: IGraphics<T>;
   getAnchorScenePos(): IWondPoint;
   getCachePath(): Path;
   getCursor(): IWondCursor;
-  onDragStart(event: IMouseEvent, internalAPI: IWondInternalAPI): void;
-  onDrag(event: IMouseEvent, internalAPI: IWondInternalAPI): Partial<T> | void;
-  onDragEnd(event: IMouseEvent, internalAPI: IWondInternalAPI): Partial<T> | void;
+  onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void;
+  onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<T> | void;
+  onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI): Partial<T> | void;
+}
+
+export interface IControlPointManager {
+  getControlPoints(): IWondControlPoint<IGraphicsAttrs>[];
+  clear(): void;
 }

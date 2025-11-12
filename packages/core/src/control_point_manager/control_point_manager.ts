@@ -1,13 +1,11 @@
-import type { WondGraphics, WondGraphicsAttrs } from '../graphics';
-import type { IWondInternalAPI } from '../editor';
-import type { IWondControlPoint } from './types';
+import type { IGraphicsAttrs, IInternalAPI, IWondControlPoint, IControlPointManager, IGraphics } from '../interfaces';
 
-export class WondControlPointManager {
-  private readonly internalAPI: IWondInternalAPI;
-  private controlPointSource: WondGraphics[] = [];
-  private controlPoints: IWondControlPoint<WondGraphicsAttrs>[] = [];
+export class WondControlPointManager implements IControlPointManager {
+  private readonly internalAPI: IInternalAPI;
+  private controlPointSource: IGraphics[] = [];
+  private controlPoints: IWondControlPoint<IGraphicsAttrs>[] = [];
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.internalAPI = internalAPI;
     this.internalAPI.on('onSelectionChange', this.refreshControlPoints);
   }
@@ -26,7 +24,7 @@ export class WondControlPointManager {
     this.internalAPI.off('onSelectionChange', this.refreshControlPoints);
   }
 
-  public getControlPoints(): IWondControlPoint<WondGraphicsAttrs>[] {
+  public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     if (this.controlPointSource.length === 0) {
       this.controlPointSource = [];
     } else if (this.controlPointSource.length === 1) {

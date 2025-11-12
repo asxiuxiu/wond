@@ -1,5 +1,6 @@
 import CanvasKitInit from 'canvaskit-wasm';
-import { WondEditor, type WondEditorOptions } from './editor';
+import { WondEditor } from './editor';
+import type { IEditor, IEditorOptions } from './interfaces';
 
 async function convertFontDataToArrayBuffers(fontDataArray: FontData[]) {
   try {
@@ -17,7 +18,7 @@ async function convertFontDataToArrayBuffers(fontDataArray: FontData[]) {
   }
 }
 
-export const initWondEditor = async (options: WondEditorOptions): Promise<WondEditor> => {
+export const initWondEditor = async (options: IEditorOptions): Promise<IEditor> => {
   if (window.canvaskit_context) {
     return WondEditor._createInstance(options);
   }

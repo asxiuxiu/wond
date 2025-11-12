@@ -1,33 +1,21 @@
 import { WondBoundingArea } from '../geo';
-import { applyToPoints, type Matrix } from 'transformation-matrix';
-import type { IWondPoint, WondGraphicDrawingContext } from '../types';
+import { applyToPoints } from 'transformation-matrix';
+import type {
+  IWondPoint,
+  WondGraphicDrawingContext,
+  IGraphics,
+  IBoundingArea,
+  IGraphicsAttrs,
+  IWondControlPoint,
+} from '../interfaces';
+import { GraphicsType, WondControlPointType } from '../interfaces';
 import { getUuid } from '@wond/common';
 import { getCanvasKitContext } from '../context';
 import type { BBox } from 'rbush';
 import type { Path } from 'canvaskit-wasm';
-import { CornerResizeControlPoint, WondControlPointType, type IWondControlPoint } from '../control_point_manager';
+import { CornerResizeControlPoint } from '../control_point_manager';
 
-export const GraphicsType = {
-  Document: 'document',
-  Graph: 'graph',
-  Rectangle: 'rectangle',
-  Vector: 'vector',
-};
-
-export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
-
-export interface WondGraphicsAttrs {
-  readonly id: string;
-  type: GraphicsType;
-  name: string;
-  transform: Matrix;
-  visible: boolean;
-  locked: boolean;
-  size: { x: number; y: number };
-  children?: WondGraphics[];
-}
-
-export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> implements BBox {
+export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements BBox, IGraphics<T> {
   get minX(): number {
     return this._boundingArea.left;
   }
@@ -49,7 +37,7 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
   protected _scenePath: Path;
   protected _boundingArea: WondBoundingArea = new WondBoundingArea();
   private _svgString = '';
-  protected _controlPointsCache: Partial<Record<WondControlPointType, IWondControlPoint<WondGraphicsAttrs>>> = {};
+  protected _controlPointsCache: Partial<Record<WondControlPointType, IWondControlPoint<IGraphicsAttrs>>> = {};
 
   parentId?: string;
 
@@ -92,7 +80,7 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
     return this._scenePath.copy();
   }
 
-  public getControlPoints(): IWondControlPoint<WondGraphicsAttrs>[] {
+  public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     // create or update the resize control points.
     if (!this._controlPointsCache[WondControlPointType.NW_Resize]) {
       this._controlPointsCache[WondControlPointType.NW_Resize] = new CornerResizeControlPoint(
@@ -138,7 +126,7 @@ export class WondGraphics<T extends WondGraphicsAttrs = WondGraphicsAttrs> imple
     return this._scenePath.contains(point.x, point.y);
   }
 
-  public getBoundingArea(): WondBoundingArea {
+  public getBoundingArea(): IBoundingArea {
     return this._boundingArea;
   }
 

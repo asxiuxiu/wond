@@ -1,2 +1,0 @@
-export const CONTROL_POINT_RADIUS = 3;
-export const CONTROL_POINT_DETECT_THRESHOLD = 3;

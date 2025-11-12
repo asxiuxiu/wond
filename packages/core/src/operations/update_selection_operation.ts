@@ -1,7 +1,5 @@
 import { WondOperation } from './operation_base';
-import { WondSceneGraph } from '../scene_graph';
-import { ZERO_BOUNDING_AREA } from '../constants';
-import { WondBoundingArea } from '../geo';
+import type { ISceneGraph } from '../interfaces';
 
 export class WondUpdateSelectionOperation extends WondOperation {
   targetSelectionNodeIds: Set<string> = new Set();
@@ -12,16 +10,12 @@ export class WondUpdateSelectionOperation extends WondOperation {
     this.targetSelectionNodeIds = selectedNodes;
   }
 
-  execute = (sceneGraph: WondSceneGraph) => {
+  execute = (sceneGraph: ISceneGraph): void => {
     this.originSelectionNodeIds = sceneGraph.getSelectionsCopy();
     sceneGraph.updateSelection(this.targetSelectionNodeIds);
   };
 
-  undo = (sceneGraph: WondSceneGraph) => {
+  undo = (sceneGraph: ISceneGraph): void => {
     sceneGraph.updateSelection(this.originSelectionNodeIds);
-  };
-
-  getDirtyBoundingArea = (): WondBoundingArea => {
-    return ZERO_BOUNDING_AREA;
   };
 }

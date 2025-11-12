@@ -2,41 +2,18 @@ import { WondCoordinateManager } from './coordinate_manager';
 import { WondCommandManager } from './command_manager';
 import { WondHostEventManager } from './host_event_manager';
 import { WondSceneGraph } from './scene_graph';
-import { WondToolManager, type WondToolType } from './tools';
-import type { WondGraphics } from './graphics';
+import { WondToolManager } from './tools';
+import { WondToolType } from './interfaces';
 import { EventEmitter } from '@wond/common';
 import { WondUpdateSelectionOperation } from './operations';
 import { WondKeybindingManager } from './keybinding_manager';
 import { WondCursorManager } from './cursor_manager';
 import { WondControlPointManager } from './control_point_manager';
-
-export interface IWondEditorEvent {
-  onLayoutDirty(): void;
-  onActiveToolChange(toolType: WondToolType): void;
-  onSelectionChange(selectedNodeSet: Set<string>): void;
-}
-
-export interface IWondInternalAPI {
-  getHostEventManager(): WondHostEventManager;
-  getSceneGraph(): WondSceneGraph;
-  getCommandManager(): WondCommandManager;
-  getCoordinateManager(): WondCoordinateManager;
-  getToolManager(): WondToolManager;
-  getCanvasRootElement(): HTMLCanvasElement;
-  getCursorManager(): WondCursorManager;
-  getControlPointManager(): WondControlPointManager;
-  emitEvent(event: keyof IWondEditorEvent, ...args: Parameters<IWondEditorEvent[keyof IWondEditorEvent]>): void;
-  on(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]): void;
-  off(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]): void;
-}
-
-export interface WondEditorOptions {
-  container: HTMLDivElement;
-}
+import type { IEditor, IGraphics, IInternalAPI, IEditorEvent, IEditorOptions } from './interfaces';
 
 const FACTORY_SYMBOL = Symbol('WondEditor.factory');
 
-export class WondEditor {
+export class WondEditor implements IEditor {
   #canvasRootElement: HTMLCanvasElement;
 
   #hostEventManager: WondHostEventManager;
@@ -48,11 +25,11 @@ export class WondEditor {
   #cursorManager: WondCursorManager;
   #controlPointManager: WondControlPointManager;
 
-  private readonly eventEmitter = new EventEmitter<IWondEditorEvent>();
+  private readonly eventEmitter = new EventEmitter<IEditorEvent>();
 
-  #internalAPI: IWondInternalAPI;
+  #internalAPI: IInternalAPI;
 
-  constructor(options: WondEditorOptions, factoryToken?: typeof FACTORY_SYMBOL) {
+  constructor(options: IEditorOptions, factoryToken?: typeof FACTORY_SYMBOL) {
     if (factoryToken !== FACTORY_SYMBOL) {
       throw new Error('WondEditor cannot be instantiated directly. Please use initWondEditor() instead.');
     }
@@ -117,11 +94,11 @@ export class WondEditor {
     });
   }
 
-  static _createInstance(options: WondEditorOptions): WondEditor {
+  static _createInstance(options: IEditorOptions): WondEditor {
     return new WondEditor(options, FACTORY_SYMBOL);
   }
 
-  public getLayerTree(): WondGraphics {
+  public getLayerTree(): IGraphics {
     return this.#sceneGraph.getRootNode();
   }
 
@@ -171,11 +148,11 @@ export class WondEditor {
     this.#sceneGraph.setHoverNode(nodeId);
   }
 
-  public on(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]) {
+  public on(event: keyof IEditorEvent, callback: IEditorEvent[keyof IEditorEvent]) {
     this.eventEmitter.on(event, callback);
   }
 
-  public off(event: keyof IWondEditorEvent, callback: IWondEditorEvent[keyof IWondEditorEvent]) {
+  public off(event: keyof IEditorEvent, callback: IEditorEvent[keyof IEditorEvent]) {
     this.eventEmitter.off(event, callback);
   }
 

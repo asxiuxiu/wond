@@ -4,20 +4,26 @@ import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
 import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
 import { getCanvasKitContext } from './context';
-import type { IWondInternalAPI } from './editor';
 import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
-import type { WondGraphics } from './graphics';
 import { WondDocument } from './graphics/document';
-import type { IWondEdge, IWondPoint, WondGraphicDrawingContext } from './types';
-import { getMatrix3x3FromTransform, sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
-import { generateShapePath } from './control_point_manager';
+import type {
+  IInternalAPI,
+  ISceneGraph,
+  IGraphics,
+  IBoundingArea,
+  IWondEdge,
+  IGraphicsAttrs,
+  IWondPoint,
+  WondGraphicDrawingContext,
+} from './interfaces';
+import { sceneCoordsToPaintCoords, scenePathToPaintPath, getMatrix3x3FromTransform, generateShapePath } from './utils';
 
-export class WondSceneGraph {
-  private readonly internalAPI: IWondInternalAPI;
+export class WondSceneGraph implements ISceneGraph {
+  private readonly internalAPI: IInternalAPI;
   private readonly rootNode: WondDocument;
 
-  private readonly nodesMap: Map<string, WondGraphics> = new Map();
-  private readonly rTree = new RBush<WondGraphics>();
+  private readonly nodesMap: Map<string, IGraphics> = new Map();
+  private readonly rTree = new RBush<IGraphics>();
 
   // selections
   private readonly selectedNodeIds: Set<string> = new Set();
@@ -29,11 +35,11 @@ export class WondSceneGraph {
 
   private paintSurface: Surface | null = null;
 
-  private dirtyBoundingArea: WondBoundingArea | null = null;
+  private dirtyBoundingArea: IBoundingArea | null = null;
 
   private cachePaintCollection: Map<string, Paint> = new Map();
 
-  constructor(internalAPI: IWondInternalAPI) {
+  constructor(internalAPI: IInternalAPI) {
     this.internalAPI = internalAPI;
     this.rootNode = new WondDocument({
       name: 'Page1',
@@ -120,7 +126,7 @@ export class WondSceneGraph {
     this.cachePaintCollection.set('controlPointFillPaint', controlPointFillPaint);
   }
 
-  public getRootNode() {
+  public getRootNode(): IGraphics {
     return this.rootNode;
   }
 
@@ -132,12 +138,12 @@ export class WondSceneGraph {
     return new Set(this.selectedNodeIds);
   }
 
-  public getSelectionsBoundingArea(): Readonly<WondBoundingArea | null> {
+  public getSelectionsBoundingArea(): Readonly<IBoundingArea | null> {
     const selectedNodeIds = Array.from(this.selectedNodeIds);
     if (selectedNodeIds.length === 0) {
       return null;
     }
-    return selectedNodeIds.reduce<WondBoundingArea | null>((acc, nodeId) => {
+    return selectedNodeIds.reduce<IBoundingArea | null>((acc, nodeId) => {
       const node = this.getNodeById(nodeId);
       if (node) {
         const nodeBoundingArea = node.getBoundingArea();
@@ -195,23 +201,23 @@ export class WondSceneGraph {
     }
   }
 
-  public getNodeById(id: string) {
+  public getNodeById(id: string): IGraphics | undefined {
     return this.nodesMap.get(id);
   }
 
-  public registerNode(node: WondGraphics) {
+  private registerNode(node: IGraphics): void {
     this.nodesMap.set(node.attrs.id, node);
   }
 
-  insertNodeIntoRTree(node: WondGraphics) {
+  private insertNodeIntoRTree(node: IGraphics): void {
     this.rTree.insert(node);
   }
 
-  removeNodeFromRTree(node: WondGraphics) {
+  private removeNodeFromRTree(node: IGraphics): void {
     this.rTree.remove(node);
   }
 
-  pickNodesAtRange(range: BBox): WondGraphics[] {
+  pickNodesAtRange(range: BBox): IGraphics[] {
     const boundingIntersectedNodes = this.rTree.search(range);
 
     const { canvaskit } = getCanvasKitContext();
@@ -229,7 +235,7 @@ export class WondSceneGraph {
     });
   }
 
-  pickNodeAtPoint(point: IWondPoint): WondGraphics | null {
+  pickNodeAtPoint(point: IWondPoint): IGraphics | null {
     const intersectedNodes = this.rTree
       .search({
         minX: point.x,
@@ -249,7 +255,7 @@ export class WondSceneGraph {
     return intersectedNodes[0];
   }
 
-  private getNodeCoordinate(node: WondGraphics): number[] {
+  private getNodeCoordinate(node: IGraphics): number[] {
     const coordinate: number[] = [];
 
     while (node.parentId) {
@@ -266,11 +272,36 @@ export class WondSceneGraph {
     return coordinate;
   }
 
-  public unregisterNode(node: WondGraphics) {
+  private getNodeByCoordinates(coordinates: number[]): IGraphics | null {
+    if (coordinates.length === 0) {
+      return this.rootNode;
+    }
+
+    let currentDepthNode: IGraphics = this.rootNode;
+    let i = 0;
+    while (i < coordinates.length) {
+      if (Array.isArray(currentDepthNode.attrs.children)) {
+        const targetDepthNode = currentDepthNode.attrs.children[coordinates[i]];
+        if (targetDepthNode) {
+          currentDepthNode = targetDepthNode;
+          i++;
+        } else {
+          console.warn('[WondSceneGraph:getNodeByCoordinates] targetDepthNode is undefined at coordinate index', i);
+          return null;
+        }
+      } else {
+        console.warn('[WondSceneGraph:getNodeByCoordinates] currentDepthNode does not have children array');
+        return null;
+      }
+    }
+    return currentDepthNode;
+  }
+
+  private unregisterNode(node: IGraphics): void {
     this.nodesMap.delete(node.attrs.id);
   }
 
-  public markDirtyArea(area: WondBoundingArea) {
+  private markDirtyArea(area: IBoundingArea): void {
     if (area === ZERO_BOUNDING_AREA) {
       return;
     }
@@ -281,11 +312,138 @@ export class WondSceneGraph {
     }
   }
 
-  public markLayerTreeDirty() {
+  private markLayerTreeDirty() {
     this.internalAPI.emitEvent('onLayoutDirty');
   }
 
-  public throttleMarkLayerTreeDirty = throttle(() => this.markLayerTreeDirty(), 500, { trailing: true });
+  private throttleMarkLayerTreeDirty = throttle(() => this.markLayerTreeDirty(), 500, { trailing: true });
+
+  public updateNodeProperty<ATTRS extends IGraphicsAttrs>(
+    target: IGraphics<ATTRS> | string | number[],
+    newProperty: Partial<ATTRS>,
+  ): void {
+    let node: IGraphics<ATTRS> | null | undefined = null;
+
+    // Resolve node from different input types
+    if (typeof target === 'string') {
+      // target is nodeId
+      node = this.getNodeById(target) as IGraphics<ATTRS> | undefined;
+      if (!node) {
+        console.warn('[WondSceneGraph:updateNodeProperty] node not found for nodeId', target);
+        return;
+      }
+    } else if (Array.isArray(target)) {
+      // target is coordinates
+      node = this.getNodeByCoordinates(target) as IGraphics<ATTRS> | null;
+      if (!node) {
+        console.warn('[WondSceneGraph:updateNodeProperty] node not found at coordinates', target);
+        return;
+      }
+    } else {
+      // target is IGraphics object
+      node = target;
+    }
+
+    const oldBoundingArea = node.getBoundingArea();
+
+    // Remove from RTree before updating
+    this.removeNodeFromRTree(node);
+
+    // Update the node's attributes
+    node.attrs = { ...node.attrs, ...newProperty };
+
+    // Mark layer tree as dirty
+    this.throttleMarkLayerTreeDirty();
+
+    // Insert back into RTree with new bounding area
+    this.insertNodeIntoRTree(node);
+
+    // Calculate and mark dirty area (union of old and new bounding areas)
+    const newBoundingArea = node.getBoundingArea();
+    const dirtyArea = oldBoundingArea.union(newBoundingArea);
+    this.markDirtyArea(dirtyArea);
+  }
+
+  public addNodeByCoordinates(coordinates: number[], newNode: IGraphics): void {
+    if (coordinates.length === 0) {
+      console.warn('[WondSceneGraph:addNodeToParentByCoordinates] coordinates length is 0');
+      return;
+    }
+
+    const parentCoordinates = coordinates.slice(0, -1);
+    const index = coordinates[coordinates.length - 1];
+
+    const parentNode = this.getNodeByCoordinates(parentCoordinates);
+    if (!parentNode) {
+      console.warn(
+        '[WondSceneGraph:addNodeToParentByCoordinates] parentNode not found at coordinates',
+        parentCoordinates,
+      );
+      return;
+    }
+
+    if (!Array.isArray(parentNode.attrs.children)) {
+      return;
+    }
+
+    parentNode.attrs.children.splice(index, 0, newNode);
+    parentNode.attrs = {
+      ...parentNode.attrs,
+      children: [...parentNode.attrs.children],
+    };
+
+    newNode.parentId = parentNode.attrs.id;
+
+    this.registerNode(newNode);
+    this.insertNodeIntoRTree(newNode);
+
+    this.markLayerTreeDirty();
+
+    this.markDirtyArea(newNode.getBoundingArea());
+  }
+
+  public removeNodeByCoordinates(childCoordinates: number[]): void {
+    if (childCoordinates.length === 0) {
+      console.warn('[WondSceneGraph:removeNodeFromParentByCoordinates] childCoordinates length is 0');
+      return;
+    }
+
+    const parentCoordinates = childCoordinates.slice(0, -1);
+    const childNode = this.getNodeByCoordinates(childCoordinates);
+
+    if (!childNode) {
+      console.warn(
+        '[WondSceneGraph:removeNodeFromParentByCoordinates] childNode not found at coordinates',
+        childCoordinates,
+      );
+      return;
+    }
+
+    const parentNode = this.getNodeByCoordinates(parentCoordinates);
+    if (!parentNode) {
+      console.warn(
+        '[WondSceneGraph:removeNodeFromParentByCoordinates] parentNode not found at coordinates',
+        parentCoordinates,
+      );
+      return;
+    }
+
+    if (!Array.isArray(parentNode.attrs.children)) {
+      return;
+    }
+
+    const nodeBoundingArea = childNode.getBoundingArea();
+
+    const newChildren = parentNode.attrs.children.filter((item) => item !== childNode);
+    parentNode.attrs = { ...parentNode.attrs, children: newChildren };
+
+    this.unregisterNode(childNode);
+    this.removeNodeFromRTree(childNode);
+
+    this.markLayerTreeDirty();
+
+    this.markDirtyArea(nodeBoundingArea);
+  }
 
   private drawSelections(context: WondGraphicDrawingContext) {
     if (this.isSelectionMoveDragging) {
