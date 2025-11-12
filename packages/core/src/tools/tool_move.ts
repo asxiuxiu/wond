@@ -142,6 +142,7 @@ export class ToolMove extends ToolBase {
     );
     const targetControlPoint = this.tryPickControlPoint(hoverPaintPoint, internalAPI);
     if (targetControlPoint) {
+      internalAPI.getSceneGraph().setHoverNode(null);
       internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
       return;
     }
@@ -209,20 +210,21 @@ export class ToolMove extends ToolBase {
       }
 
       internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
-      this.modifyingNodeStartTransformMap.forEach((startTransform, nodeId) => {
+
+      for (const [nodeId, startTransform] of this.modifyingNodeStartTransformMap.entries()) {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
         if (node) {
           this.getCommand(internalAPI).addOperations([
             new WondUpdatePropertyOperation<IGraphicsAttrs>(node, {
               transform: {
                 ...startTransform,
-                e: Math.round(startTransform.e + (endPoint.x - this.startPoint!.x)),
-                f: Math.round(startTransform.f + (endPoint.y - this.startPoint!.y)),
+                e: Math.round(startTransform.e + (endPoint.x - this.startPoint.x)),
+                f: Math.round(startTransform.f + (endPoint.y - this.startPoint.y)),
               },
             }),
           ]);
         }
-      });
+      }
     }
   };
 
