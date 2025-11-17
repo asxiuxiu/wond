@@ -13,7 +13,7 @@ import { getUuid } from '@wond/common';
 import { getCanvasKitContext } from '../context';
 import type { BBox } from 'rbush';
 import type { Path } from 'canvaskit-wasm';
-import { CornerResizeControlPoint } from '../control_point_manager';
+import { CornerResizeControlPoint, EdgeResizeControlPoint } from '../control_point_manager';
 
 export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements BBox, IGraphics<T> {
   get minX(): number {
@@ -82,6 +82,35 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
 
   public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     // create or update the resize control points.
+
+    if (!this._controlPointsCache[WondControlPointType.N_Resize]) {
+      this._controlPointsCache[WondControlPointType.N_Resize] = new EdgeResizeControlPoint(
+        this,
+        WondControlPointType.N_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.S_Resize]) {
+      this._controlPointsCache[WondControlPointType.S_Resize] = new EdgeResizeControlPoint(
+        this,
+        WondControlPointType.S_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.E_Resize]) {
+      this._controlPointsCache[WondControlPointType.E_Resize] = new EdgeResizeControlPoint(
+        this,
+        WondControlPointType.E_Resize,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.W_Resize]) {
+      this._controlPointsCache[WondControlPointType.W_Resize] = new EdgeResizeControlPoint(
+        this,
+        WondControlPointType.W_Resize,
+      );
+    }
+
     if (!this._controlPointsCache[WondControlPointType.NW_Resize]) {
       this._controlPointsCache[WondControlPointType.NW_Resize] = new CornerResizeControlPoint(
         this,
@@ -111,6 +140,10 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
     }
 
     return [
+      WondControlPointType.N_Resize,
+      WondControlPointType.S_Resize,
+      WondControlPointType.E_Resize,
+      WondControlPointType.W_Resize,
       WondControlPointType.NW_Resize,
       WondControlPointType.NE_Resize,
       WondControlPointType.SW_Resize,

@@ -1,31 +1,66 @@
-import type { WondControlPointShape, IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs } from '../../interfaces';
+import type {
+  WondControlPointShape,
+  IMouseEvent,
+  IWondPoint,
+  IInternalAPI,
+  IGraphicsAttrs,
+  ViewSpaceMeta,
+} from '../../interfaces';
 import {
   getResizeBaseDegree,
-  getResizeControlPointNormalizedPos,
-  getResizeControlPointFixedNormalizedPos,
+  getCornerResizeControlPointNormalizedPos,
+  getResizeControlPointFixedType,
   screenCoordsToSceneCoords,
+  CONTROL_POINT_RADIUS,
+  sceneCoordsToPaintCoords,
+  getMatrix3x3FromTransform,
+  isAxisAlignedAfterTransform,
 } from '../../utils';
 import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
 import { applyToPoint, compose, decomposeTSR, inverse, rotate, scale, translate } from 'transformation-matrix';
+import { getCanvasKitContext } from '../../context';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
   visible: boolean = true;
 
-  private startLocalSpacePoint: IWondPoint | null = null;
   private originAttrs: IGraphicsAttrs | null = null;
 
   private getNormalizedPos() {
-    return getResizeControlPointNormalizedPos(this.type);
+    return getCornerResizeControlPointNormalizedPos(this.type);
   }
 
-  public getAnchorScenePos() {
+  protected getAnchorScenePos() {
     const normalizedPos = this.getNormalizedPos();
     return applyToPoint(this.refGraphic.attrs.transform, {
       x: this.refGraphic.attrs.size.x * normalizedPos.x,
       y: this.refGraphic.attrs.size.y * normalizedPos.y,
     });
+  }
+
+  public detectPoint(viewSpaceMeta: ViewSpaceMeta, point: IWondPoint): boolean {
+    const radius = CONTROL_POINT_RADIUS + 3;
+
+    this._cachePath.reset();
+
+    const anchorScenePos = this.getAnchorScenePos();
+    const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
+
+    const { canvaskit } = getCanvasKitContext();
+    this._cachePath.addRect(
+      canvaskit.LTRBRect(
+        anchorPaintPos.x - radius,
+        anchorPaintPos.y - radius,
+        anchorPaintPos.x + radius,
+        anchorPaintPos.y + radius,
+      ),
+    );
+    this._cachePath.transform(
+      getMatrix3x3FromTransform({ ...this.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
+    );
+
+    return this._cachePath.contains(point.x, point.y);
   }
 
   public getCursor(): IWondCursor {
@@ -34,40 +69,37 @@ export class CornerResizeControlPoint extends ControlPointBase {
 
   public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {
     this.originAttrs = { ...this.refGraphic.attrs };
-
-    const startSceneSpacePoint = screenCoordsToSceneCoords(
-      { x: event.clientX, y: event.clientY },
-      internalAPI.getCoordinateManager().getViewSpaceMeta(),
-    );
-
-    this.startLocalSpacePoint = applyToPoint(inverse(this.originAttrs.transform), {
-      x: Math.round(startSceneSpacePoint.x),
-      y: Math.round(startSceneSpacePoint.y),
-    });
   }
 
   public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<IGraphicsAttrs> | void {
-    if (!this.startLocalSpacePoint || !this.originAttrs) return;
-    const endSceneSpacePoint = screenCoordsToSceneCoords(
+    if (!this.originAttrs) return;
+    let endSceneSpacePoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
+    const isAxisAligned = isAxisAlignedAfterTransform(this.originAttrs.transform);
+    if (!isAxisAligned) {
+      endSceneSpacePoint = {
+        x: Math.round(endSceneSpacePoint.x),
+        y: Math.round(endSceneSpacePoint.y),
+      };
+    }
+
     const endLocalSpacePoint = applyToPoint(inverse(this.originAttrs.transform), {
-      x: Math.round(endSceneSpacePoint.x),
-      y: Math.round(endSceneSpacePoint.y),
+      x: endSceneSpacePoint.x,
+      y: endSceneSpacePoint.y,
     });
 
-    const deltaLocalSpace = {
-      x: endLocalSpacePoint.x - this.startLocalSpacePoint.x,
-      y: endLocalSpacePoint.y - this.startLocalSpacePoint.y,
-    };
-
-    const fixedNormalizedPos = getResizeControlPointFixedNormalizedPos(this.type);
+    const fixedControlPointType = getResizeControlPointFixedType(this.type);
+    if (!fixedControlPointType) {
+      return;
+    }
+    const fixedNormalizedPos = getCornerResizeControlPointNormalizedPos(fixedControlPointType);
 
     const fixedPointInLocalSpace = {
-      x: this.originAttrs.size.x * fixedNormalizedPos.x,
-      y: this.originAttrs.size.y * fixedNormalizedPos.y,
+      x: this.originAttrs.size.x * fixedNormalizedPos.x || 0,
+      y: this.originAttrs.size.y * fixedNormalizedPos.y || 0,
     };
 
     const movingNormalizedPos = this.getNormalizedPos();
@@ -76,19 +108,16 @@ export class CornerResizeControlPoint extends ControlPointBase {
       y: this.originAttrs.size.y * movingNormalizedPos.y,
     };
 
-    const newMovingPointInLocalSpace = {
-      x: movingPointInLocalSpace.x + deltaLocalSpace.x,
-      y: movingPointInLocalSpace.y + deltaLocalSpace.y,
+    const scaleLocalSpace = {
+      x: (endLocalSpacePoint.x - fixedPointInLocalSpace.x) / (movingPointInLocalSpace.x - fixedPointInLocalSpace.x),
+      y: (endLocalSpacePoint.y - fixedPointInLocalSpace.y) / (movingPointInLocalSpace.y - fixedPointInLocalSpace.y),
     };
 
-    const scaleLocalSpace = {
-      x:
-        (newMovingPointInLocalSpace.x - fixedPointInLocalSpace.x) /
-        (movingPointInLocalSpace.x - fixedPointInLocalSpace.x),
-      y:
-        (newMovingPointInLocalSpace.y - fixedPointInLocalSpace.y) /
-        (movingPointInLocalSpace.y - fixedPointInLocalSpace.y),
-    };
+    if (event.shiftKey) {
+      const maxScale = Math.max(scaleLocalSpace.x, scaleLocalSpace.y);
+      scaleLocalSpace.x = maxScale;
+      scaleLocalSpace.y = maxScale;
+    }
 
     const newTransform = compose([
       this.originAttrs.transform,
@@ -100,9 +129,14 @@ export class CornerResizeControlPoint extends ControlPointBase {
     const decomposedTransform = decomposeTSR(newTransform);
 
     const newSize = {
-      x: Math.round(this.originAttrs.size.x * decomposedTransform.scale.sx * 100) / 100,
-      y: Math.round(this.originAttrs.size.y * decomposedTransform.scale.sy * 100) / 100,
+      x: this.originAttrs.size.x * decomposedTransform.scale.sx,
+      y: this.originAttrs.size.y * decomposedTransform.scale.sy,
     };
+
+    if (isAxisAligned) {
+      newSize.x = Math.round(newSize.x);
+      newSize.y = Math.round(newSize.y);
+    }
 
     const noScaleTransform = compose([
       translate(decomposedTransform.translate.tx, decomposedTransform.translate.ty),

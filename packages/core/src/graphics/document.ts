@@ -1,6 +1,7 @@
 import type { IWondColor, WondGraphicDrawingContext, IGraphicsAttrs, IGraphics, IBoundingArea } from '../interfaces';
 import { WondGraphics } from './graphics';
 import { ZERO_BOUNDING_AREA } from '../constants';
+import { getCanvasKitContext } from '../context';
 
 export interface WondDocumentAttrs extends IGraphicsAttrs {
   backgroundColor: IWondColor;
@@ -26,9 +27,10 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
   }
 
   public draw(context: WondGraphicDrawingContext): void {
-    const { canvas, canvaskit: canvasKit } = context;
+    const { canvas } = context;
+    const { canvaskit } = getCanvasKitContext();
     canvas.clear(
-      canvasKit.Color(
+      canvaskit.Color(
         this.attrs.backgroundColor.r,
         this.attrs.backgroundColor.g,
         this.attrs.backgroundColor.b,

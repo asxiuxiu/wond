@@ -26,9 +26,7 @@ export interface ViewSpaceMeta {
 }
 
 export interface WondGraphicDrawingContext {
-  canvaskit: CanvasKit;
   canvas: Canvas;
-  fontMgr: FontMgr;
   viewSpaceMeta: ViewSpaceMeta;
   cachePaintCollection: Map<string, Paint>;
 }

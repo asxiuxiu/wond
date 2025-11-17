@@ -455,7 +455,8 @@ export class WondSceneGraph implements ISceneGraph {
       return;
     }
 
-    const { canvaskit, canvas, fontMgr, cachePaintCollection } = context;
+    const { canvas, cachePaintCollection } = context;
+    const { canvaskit, fontMgr } = getCanvasKitContext();
 
     const overlayStrokePaint = cachePaintCollection.get('overlayStrokePaint');
     if (!overlayStrokePaint) {
@@ -650,19 +651,10 @@ export class WondSceneGraph implements ISceneGraph {
         continue;
       }
 
-      const anchorScenePos = controlPoint.getAnchorScenePos();
-      if (anchorScenePos.x < 0 || anchorScenePos.y < 0) {
+      const anchorPath = controlPoint.getDrawPath(viewSpaceMeta);
+      if (anchorPath.isEmpty()) {
         continue;
       }
-
-      const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
-      const anchorPath = controlPoint.getCachePath();
-      generateShapePath(anchorPath, controlPoint.shape, anchorPaintPos);
-
-      // apply graphic's skewX and skewY
-      anchorPath.transform(
-        getMatrix3x3FromTransform({ ...controlPoint.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
-      );
 
       canvas.drawPath(anchorPath, controlPointOutlinePaint);
       canvas.drawPath(anchorPath, controlPointFillPaint);
@@ -693,7 +685,8 @@ export class WondSceneGraph implements ISceneGraph {
     if (this.selectionRange === null) {
       return;
     }
-    const { canvaskit, canvas, cachePaintCollection } = context;
+    const { canvas, cachePaintCollection } = context;
+    const { canvaskit } = getCanvasKitContext();
     const selectionRangeOutlinePaint = cachePaintCollection.get('selectionRangeOutlinePaint');
     const selectionRangeFillPaint = cachePaintCollection.get('selectionRangeFillPaint');
     if (!selectionRangeOutlinePaint || !selectionRangeFillPaint) {
@@ -732,15 +725,11 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   private rafDraw() {
-    const { canvaskit, fontMgr } = getCanvasKitContext();
-
     const drawFrame = (canvas: Canvas) => {
       const viewSpaceMeta = this.internalAPI.getCoordinateManager().getViewSpaceMeta();
 
       const context: WondGraphicDrawingContext = {
-        canvaskit,
         canvas,
-        fontMgr,
         viewSpaceMeta,
         cachePaintCollection: this.cachePaintCollection,
       };

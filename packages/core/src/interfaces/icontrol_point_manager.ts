@@ -1,7 +1,7 @@
 import type { Path } from 'canvaskit-wasm';
 import type { IGraphicsAttrs, IGraphics } from './igraphics';
 import type { IMouseEvent } from './ihost_event_manager';
-import type { IWondPoint } from './itypes';
+import type { IWondPoint, ViewSpaceMeta } from './itypes';
 import type { IWondCursor } from '../cursor_manager';
 import type { IInternalAPI } from './iinternal_api';
 
@@ -29,8 +29,8 @@ export interface IWondControlPoint<T extends IGraphicsAttrs> {
   visible: boolean;
   shape: WondControlPointShape;
   refGraphic: IGraphics<T>;
-  getAnchorScenePos(): IWondPoint;
-  getCachePath(): Path;
+  getDrawPath(viewSpaceMeta: ViewSpaceMeta): Path; // return the path in paint space.
+  detectPoint(viewSpaceMeta: ViewSpaceMeta, paintPoint: IWondPoint): boolean; // if the paint point is on the control point.
   getCursor(): IWondCursor;
   onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void;
   onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<T> | void;

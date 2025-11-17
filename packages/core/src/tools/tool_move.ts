@@ -1,17 +1,10 @@
 import { ToolBase } from './tool_base';
 import type { IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs, ICommand, IWondControlPoint } from '../interfaces';
 import type { BBox } from 'rbush';
-import type { Matrix } from 'transformation-matrix';
+import { applyToPoint, type Matrix } from 'transformation-matrix';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
-import {
-  generateDetectShapePath,
-  sceneCoordsToPaintCoords,
-  sceneCoordsToScreenCoords,
-  screenCoordsToPaintCoords,
-  screenCoordsToSceneCoords,
-  getMatrix3x3FromTransform,
-} from '../utils';
+import { sceneCoordsToScreenCoords, screenCoordsToPaintCoords, screenCoordsToSceneCoords } from '../utils';
 
 export class ToolMove extends ToolBase {
   private startPoint: IWondPoint | null = null;
@@ -39,17 +32,7 @@ export class ToolMove extends ToolBase {
     const controlPoints = internalAPI.getControlPointManager().getControlPoints();
     for (let i = controlPoints.length - 1; i >= 0; i--) {
       const controlPoint = controlPoints[i];
-      const anchorScenePos = controlPoint.getAnchorScenePos();
-      const anchorPaintPos = sceneCoordsToPaintCoords(
-        anchorScenePos,
-        internalAPI.getCoordinateManager().getViewSpaceMeta(),
-      );
-      const detectionPath = controlPoint.getCachePath();
-      generateDetectShapePath(detectionPath, controlPoint.shape, anchorPaintPos);
-      detectionPath.transform(
-        getMatrix3x3FromTransform({ ...controlPoint.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
-      );
-      if (detectionPath.contains(paintPoint.x, paintPoint.y)) {
+      if (controlPoint.detectPoint(internalAPI.getCoordinateManager().getViewSpaceMeta(), paintPoint)) {
         return controlPoint;
       }
     }
@@ -142,6 +125,7 @@ export class ToolMove extends ToolBase {
     );
     const targetControlPoint = this.tryPickControlPoint(hoverPaintPoint, internalAPI);
     if (targetControlPoint) {
+      internalAPI.getSceneGraph().setHoverNode(null);
       internalAPI.getCursorManager().setCursor(targetControlPoint.getCursor());
       return;
     }
@@ -209,20 +193,21 @@ export class ToolMove extends ToolBase {
       }
 
       internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
-      this.modifyingNodeStartTransformMap.forEach((startTransform, nodeId) => {
+
+      for (const [nodeId, startTransform] of this.modifyingNodeStartTransformMap.entries()) {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
         if (node) {
           this.getCommand(internalAPI).addOperations([
             new WondUpdatePropertyOperation<IGraphicsAttrs>(node, {
               transform: {
                 ...startTransform,
-                e: Math.round(startTransform.e + (endPoint.x - this.startPoint!.x)),
-                f: Math.round(startTransform.f + (endPoint.y - this.startPoint!.y)),
+                e: Math.round(startTransform.e + (endPoint.x - this.startPoint.x)),
+                f: Math.round(startTransform.f + (endPoint.y - this.startPoint.y)),
               },
             }),
           ]);
         }
-      });
+      }
     }
   };
 

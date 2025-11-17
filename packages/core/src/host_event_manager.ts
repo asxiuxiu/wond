@@ -11,9 +11,20 @@ interface IHostEvent {
   wheel(event: IMouseEvent): void;
 }
 
+interface EmitEventOptions {
+  hotkeyReTrigger?: boolean;
+}
+
+const LISTEN_HOTKEY_EVENT_KEYS = ['Shift', 'Control', 'Alt'];
+
 export class WondHostEventManager implements IHostEventManager {
   private readonly hostElement: HTMLCanvasElement;
   private readonly eventEmitter = new EventEmitter<IHostEvent>();
+
+  private cacheHotkeyReTriggerEvent: {
+    eventType: keyof IHostEvent;
+    eventData: IMouseEvent;
+  } | null = null;
 
   private draggingState: {
     state: boolean;
@@ -34,6 +45,8 @@ export class WondHostEventManager implements IHostEventManager {
     document.addEventListener('pointerup', this.onPointerUp);
     document.addEventListener('contextmenu', this.onContextMenu);
     document.addEventListener('wheel', this.onWheel, { passive: false });
+    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('keyup', this.onKeyUp);
   }
 
   clear() {
@@ -42,14 +55,57 @@ export class WondHostEventManager implements IHostEventManager {
     document.removeEventListener('pointerup', this.onPointerUp);
     document.removeEventListener('contextmenu', this.onContextMenu);
     document.removeEventListener('wheel', this.onWheel);
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
   }
+
+  private onKeyDown = (event: KeyboardEvent) => {
+    if (this.cacheHotkeyReTriggerEvent == null) {
+      return;
+    }
+    if (LISTEN_HOTKEY_EVENT_KEYS.includes(event.key)) {
+      this.emitEvent(
+        this.cacheHotkeyReTriggerEvent.eventType,
+        {
+          hotkeyReTrigger: true,
+        },
+        {
+          ...this.cacheHotkeyReTriggerEvent.eventData,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+        },
+      );
+    }
+  };
+
+  private onKeyUp = (event: KeyboardEvent) => {
+    if (this.cacheHotkeyReTriggerEvent == null) {
+      return;
+    }
+
+    if (LISTEN_HOTKEY_EVENT_KEYS.includes(event.key)) {
+      this.emitEvent(
+        this.cacheHotkeyReTriggerEvent.eventType,
+        {
+          hotkeyReTrigger: true,
+        },
+        {
+          ...this.cacheHotkeyReTriggerEvent.eventData,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+        },
+      );
+    }
+  };
 
   private onWheel = (event: WheelEvent) => {
     if (event.target !== this.hostElement) {
       return;
     }
     event.preventDefault();
-    this.eventEmitter.emit('wheel', {
+    this.emitEvent('wheel', null, {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,
       shiftKey: event.shiftKey,
@@ -66,7 +122,7 @@ export class WondHostEventManager implements IHostEventManager {
       return;
     }
     event.preventDefault();
-    this.eventEmitter.emit('contextmenu', {
+    this.emitEvent('contextmenu', null, {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,
       shiftKey: event.shiftKey,
@@ -90,7 +146,7 @@ export class WondHostEventManager implements IHostEventManager {
 
     this.draggingState.state = true;
     this.draggingState.button = event.button as MouseEventButton;
-    this.eventEmitter.emit('start', {
+    this.emitEvent('start', null, {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,
       shiftKey: event.shiftKey,
@@ -113,7 +169,7 @@ export class WondHostEventManager implements IHostEventManager {
         return;
       }
 
-      this.eventEmitter.emit('move', {
+      this.emitEvent('move', null, {
         altKey: event.altKey,
         ctrlKey: event.ctrlKey,
         shiftKey: event.shiftKey,
@@ -123,15 +179,21 @@ export class WondHostEventManager implements IHostEventManager {
         nativeEvent: event,
       });
     } else {
-      this.eventEmitter.emit('drag', {
-        altKey: event.altKey,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        button: this.draggingState.button!,
-        nativeEvent: event,
-      });
+      this.emitEvent(
+        'drag',
+        {
+          hotkeyReTrigger: true,
+        },
+        {
+          altKey: event.altKey,
+          ctrlKey: event.ctrlKey,
+          shiftKey: event.shiftKey,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          button: this.draggingState.button!,
+          nativeEvent: event,
+        },
+      );
     }
   };
 
@@ -143,7 +205,7 @@ export class WondHostEventManager implements IHostEventManager {
 
     this.draggingState.state = false;
     this.draggingState.button = null;
-    this.eventEmitter.emit('end', {
+    this.emitEvent('end', null, {
       altKey: event.altKey,
       ctrlKey: event.ctrlKey,
       shiftKey: event.shiftKey,
@@ -153,6 +215,19 @@ export class WondHostEventManager implements IHostEventManager {
       nativeEvent: event,
     });
   };
+
+  private emitEvent(eventType: keyof IHostEvent, options: EmitEventOptions | null, eventData: IMouseEvent) {
+    // cache last event data.
+    this.eventEmitter.emit(eventType, eventData);
+    if (options?.hotkeyReTrigger) {
+      this.cacheHotkeyReTriggerEvent = {
+        eventType,
+        eventData,
+      };
+    } else {
+      this.cacheHotkeyReTriggerEvent = null;
+    }
+  }
 
   on(event: keyof IHostEvent, callback: IHostEvent[keyof IHostEvent]) {
     this.eventEmitter.on(event, callback);

@@ -1,6 +1,6 @@
 import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
 import type { IWondPoint, ViewSpaceMeta } from '../interfaces';
-import { getMatrix3x3FromTransform } from './transform';
+import { getMatrix3x3FromTransform } from './transform_utils';
 import type { Path } from 'canvaskit-wasm';
 
 /**

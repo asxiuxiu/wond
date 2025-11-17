@@ -20,7 +20,8 @@ export class WondRect extends WondGraphics<WondRectAttrs> {
   }
 
   public draw(context: WondGraphicDrawingContext): void {
-    const { canvas, canvaskit } = context;
+    const { canvas } = context;
+    const { canvaskit } = getCanvasKitContext();
     const paint = new canvaskit.Paint();
     paint.setColor(
       canvaskit.Color4f(
