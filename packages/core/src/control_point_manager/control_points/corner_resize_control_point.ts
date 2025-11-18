@@ -14,18 +14,17 @@ import {
   CONTROL_POINT_RADIUS,
   sceneCoordsToPaintCoords,
   getMatrix3x3FromTransform,
-  isAxisAlignedAfterTransform,
 } from '../../utils';
 import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
-import { applyToPoint, compose, decomposeTSR, inverse, rotate, scale, translate } from 'transformation-matrix';
+import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 'transformation-matrix';
 import { getCanvasKitContext } from '../../context';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
   visible: boolean = true;
 
-  private originAttrs: IGraphicsAttrs | null = null;
+  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size'> | null = null;
 
   private getNormalizedPos() {
     return getCornerResizeControlPointNormalizedPos(this.type);
@@ -33,9 +32,11 @@ export class CornerResizeControlPoint extends ControlPointBase {
 
   protected getAnchorScenePos() {
     const normalizedPos = this.getNormalizedPos();
-    return applyToPoint(this.refGraphic.attrs.transform, {
-      x: this.refGraphic.attrs.size.x * normalizedPos.x,
-      y: this.refGraphic.attrs.size.y * normalizedPos.y,
+
+    const refGraphicsAttrs = this.getRefGraphicsAttrs();
+    return applyToPoint(refGraphicsAttrs.transform, {
+      x: refGraphicsAttrs.size.x * normalizedPos.x,
+      y: refGraphicsAttrs.size.y * normalizedPos.y,
     });
   }
 
@@ -56,9 +57,8 @@ export class CornerResizeControlPoint extends ControlPointBase {
         anchorPaintPos.y + radius,
       ),
     );
-    this._cachePath.transform(
-      getMatrix3x3FromTransform({ ...this.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
-    );
+    const refGraphicsAttrs = this.getRefGraphicsAttrs();
+    this._cachePath.transform(getMatrix3x3FromTransform({ ...refGraphicsAttrs.transform, a: 1, d: 1, e: 0, f: 0 }));
 
     return this._cachePath.contains(point.x, point.y);
   }
@@ -68,23 +68,20 @@ export class CornerResizeControlPoint extends ControlPointBase {
   }
 
   public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {
-    this.originAttrs = { ...this.refGraphic.attrs };
+    this.originAttrs = this.getRefGraphicsAttrs();
   }
 
-  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<IGraphicsAttrs> | void {
-    if (!this.originAttrs) return;
+  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Matrix | null {
+    if (!this.originAttrs) return null;
     let endSceneSpacePoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
-    const isAxisAligned = isAxisAlignedAfterTransform(this.originAttrs.transform);
-    if (!isAxisAligned) {
-      endSceneSpacePoint = {
-        x: Math.round(endSceneSpacePoint.x),
-        y: Math.round(endSceneSpacePoint.y),
-      };
-    }
+    endSceneSpacePoint = {
+      x: Math.round(endSceneSpacePoint.x),
+      y: Math.round(endSceneSpacePoint.y),
+    };
 
     const endLocalSpacePoint = applyToPoint(inverse(this.originAttrs.transform), {
       x: endSceneSpacePoint.x,
@@ -93,7 +90,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
 
     const fixedControlPointType = getResizeControlPointFixedType(this.type);
     if (!fixedControlPointType) {
-      return;
+      return null;
     }
     const fixedNormalizedPos = getCornerResizeControlPointNormalizedPos(fixedControlPointType);
 
@@ -126,30 +123,12 @@ export class CornerResizeControlPoint extends ControlPointBase {
       translate(-fixedPointInLocalSpace.x, -fixedPointInLocalSpace.y),
     ]);
 
-    const decomposedTransform = decomposeTSR(newTransform);
+    const addedTransform = compose([newTransform, inverse(this.originAttrs.transform)]);
 
-    const newSize = {
-      x: this.originAttrs.size.x * decomposedTransform.scale.sx,
-      y: this.originAttrs.size.y * decomposedTransform.scale.sy,
-    };
-
-    if (isAxisAligned) {
-      newSize.x = Math.round(newSize.x);
-      newSize.y = Math.round(newSize.y);
-    }
-
-    const noScaleTransform = compose([
-      translate(decomposedTransform.translate.tx, decomposedTransform.translate.ty),
-      rotate(decomposedTransform.rotation.angle),
-    ]);
-
-    return {
-      transform: noScaleTransform,
-      size: newSize,
-    };
+    return addedTransform;
   }
 
   public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI) {
-    return;
+    return null;
   }
 }

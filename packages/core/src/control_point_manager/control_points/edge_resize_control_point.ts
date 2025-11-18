@@ -2,18 +2,17 @@ import type { IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs, ViewSpaceMe
 import {
   getEdgeResizeControlPointNormalizedPos,
   getResizeControlPointFixedType,
-  isAxisAlignedAfterTransform,
   sceneCoordsToPaintCoords,
   screenCoordsToSceneCoords,
 } from '../../utils';
 import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
-import { applyToPoint, compose, decomposeTSR, inverse, rotate, scale, translate } from 'transformation-matrix';
+import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 'transformation-matrix';
 
 export class EdgeResizeControlPoint extends ControlPointBase {
   visible: boolean = false;
 
-  private originAttrs: IGraphicsAttrs | null = null;
+  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size'> | null = null;
 
   protected getAnchorScenePos() {
     return { x: -1, y: -1 };
@@ -25,11 +24,12 @@ export class EdgeResizeControlPoint extends ControlPointBase {
       return false;
     }
 
+    const refGraphicsAttrs = this.getRefGraphicsAttrs();
     const [startPaintSpacePoint, endPaintSpacePoint] = [startNormalizedPos, endNormalizedPos].map((pos) =>
       sceneCoordsToPaintCoords(
-        applyToPoint(this.refGraphic.attrs.transform, {
-          x: pos.x * this.refGraphic.attrs.size.x,
-          y: pos.y * this.refGraphic.attrs.size.y,
+        applyToPoint(refGraphicsAttrs.transform, {
+          x: pos.x * refGraphicsAttrs.size.x,
+          y: pos.y * refGraphicsAttrs.size.y,
         }),
         viewSpaceMeta,
       ),
@@ -78,10 +78,11 @@ export class EdgeResizeControlPoint extends ControlPointBase {
       return { type: 'resize', degree: 0 };
     }
 
+    const refGraphicsAttrs = this.getRefGraphicsAttrs();
     const [startSceneSpacePoint, endSceneSpacePoint] = [startNormalizedPos, endNormalizedPos].map((pos) =>
-      applyToPoint(this.refGraphic.attrs.transform, {
-        x: pos.x * this.refGraphic.attrs.size.x,
-        y: pos.y * this.refGraphic.attrs.size.y,
+      applyToPoint(refGraphicsAttrs.transform, {
+        x: pos.x * refGraphicsAttrs.size.x,
+        y: pos.y * refGraphicsAttrs.size.y,
       }),
     );
 
@@ -93,11 +94,11 @@ export class EdgeResizeControlPoint extends ControlPointBase {
   }
 
   public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {
-    this.originAttrs = { ...this.refGraphic.attrs };
+    this.originAttrs = this.getRefGraphicsAttrs();
   }
 
-  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<IGraphicsAttrs> | void {
-    if (!this.originAttrs) return;
+  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Matrix | null {
+    if (!this.originAttrs) return null;
 
     const [movingEdgeStartNormalizedPos, movingEdgeEndNormalizedPos] = getEdgeResizeControlPointNormalizedPos(
       this.type,
@@ -108,7 +109,7 @@ export class EdgeResizeControlPoint extends ControlPointBase {
       movingEdgeEndNormalizedPos.x < 0 ||
       movingEdgeEndNormalizedPos.y < 0
     ) {
-      return;
+      return null;
     }
 
     const [startAnchorLocalSpacePoint, endAnchorLocalSpacePoint] = [
@@ -124,47 +125,44 @@ export class EdgeResizeControlPoint extends ControlPointBase {
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
-    const isAxisAligned = isAxisAlignedAfterTransform(this.originAttrs.transform);
-    if (!isAxisAligned) {
-      const [startAnchorSceneSpacePoint, endAnchorSceneSpacePoint] = [
-        startAnchorLocalSpacePoint,
-        endAnchorLocalSpacePoint,
-      ].map((pos) => applyToPoint(this.originAttrs!.transform, pos));
+    const [startAnchorSceneSpacePoint, endAnchorSceneSpacePoint] = [
+      startAnchorLocalSpacePoint,
+      endAnchorLocalSpacePoint,
+    ].map((pos) => applyToPoint(this.originAttrs!.transform, pos));
 
-      const edgeVector = {
-        x: endAnchorSceneSpacePoint.x - startAnchorSceneSpacePoint.x,
-        y: endAnchorSceneSpacePoint.y - startAnchorSceneSpacePoint.y,
+    const edgeVector = {
+      x: endAnchorSceneSpacePoint.x - startAnchorSceneSpacePoint.x,
+      y: endAnchorSceneSpacePoint.y - startAnchorSceneSpacePoint.y,
+    };
+
+    const edgeLength = Math.sqrt(edgeVector.x * edgeVector.x + edgeVector.y * edgeVector.y);
+
+    let normalVector = { x: 0, y: 0 };
+    if (edgeLength !== 0) {
+      normalVector = {
+        x: -edgeVector.y / edgeLength,
+        y: edgeVector.x / edgeLength,
       };
+    }
 
-      const edgeLength = Math.sqrt(edgeVector.x * edgeVector.x + edgeVector.y * edgeVector.y);
-
-      let normalVector = { x: 0, y: 0 };
-      if (edgeLength !== 0) {
-        normalVector = {
-          x: -edgeVector.y / edgeLength,
-          y: edgeVector.x / edgeLength,
-        };
-      }
-
-      const epsilon = Number.EPSILON;
-      if (Math.abs(normalVector.y) < epsilon) {
-        endSceneSpacePoint = {
-          x: Math.round(endSceneSpacePoint.x),
-          y: endSceneSpacePoint.y,
-        };
-      } else if (Math.abs(normalVector.x) < epsilon) {
-        endSceneSpacePoint = {
-          x: endSceneSpacePoint.x,
-          y: Math.round(endSceneSpacePoint.y),
-        };
-      }
+    const epsilon = Number.EPSILON;
+    if (Math.abs(normalVector.y) < epsilon) {
+      endSceneSpacePoint = {
+        x: Math.round(endSceneSpacePoint.x),
+        y: endSceneSpacePoint.y,
+      };
+    } else if (Math.abs(normalVector.x) < epsilon) {
+      endSceneSpacePoint = {
+        x: endSceneSpacePoint.x,
+        y: Math.round(endSceneSpacePoint.y),
+      };
     }
 
     const endLocalSpacePoint = applyToPoint(inverse(this.originAttrs.transform), endSceneSpacePoint);
 
     const fixedEdgeResizeControlPointType = getResizeControlPointFixedType(this.type);
     if (!fixedEdgeResizeControlPointType) {
-      return;
+      return null;
     }
     const [fixedStartNormalizedPos, fixedEndNormalizedPos] = getEdgeResizeControlPointNormalizedPos(
       fixedEdgeResizeControlPointType,
@@ -229,30 +227,12 @@ export class EdgeResizeControlPoint extends ControlPointBase {
       translate(-fixedEdgeMiddlePointInLocalSpace.x, -fixedEdgeMiddlePointInLocalSpace.y),
     ]);
 
-    const decomposedTransform = decomposeTSR(newTransform);
+    const addedTransform = compose([newTransform, inverse(this.originAttrs.transform)]);
 
-    const newSize = {
-      x: this.originAttrs.size.x * decomposedTransform.scale.sx,
-      y: this.originAttrs.size.y * decomposedTransform.scale.sy,
-    };
-
-    if (isAxisAligned) {
-      newSize.x = Math.round(newSize.x);
-      newSize.y = Math.round(newSize.y);
-    }
-
-    const noScaleTransform = compose([
-      translate(decomposedTransform.translate.tx, decomposedTransform.translate.ty),
-      rotate(decomposedTransform.rotation.angle),
-    ]);
-
-    return {
-      transform: noScaleTransform,
-      size: newSize,
-    };
+    return addedTransform;
   }
 
   public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI) {
-    return;
+    return null;
   }
 }

@@ -1,17 +1,30 @@
 import { ToolBase } from './tool_base';
-import type { IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs, ICommand, IWondControlPoint } from '../interfaces';
+import type {
+  IMouseEvent,
+  IWondPoint,
+  IInternalAPI,
+  IGraphicsAttrs,
+  ICommand,
+  IWondControlPoint,
+  IOperation,
+} from '../interfaces';
 import type { BBox } from 'rbush';
-import { applyToPoint, type Matrix } from 'transformation-matrix';
+import { compose, decomposeTSR, rotate, translate, type Matrix } from 'transformation-matrix';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
-import { sceneCoordsToScreenCoords, screenCoordsToPaintCoords, screenCoordsToSceneCoords } from '../utils';
+import {
+  isAxisAlignedAfterTransform,
+  sceneCoordsToScreenCoords,
+  screenCoordsToPaintCoords,
+  screenCoordsToSceneCoords,
+} from '../utils';
 
 export class ToolMove extends ToolBase {
   private startPoint: IWondPoint | null = null;
   private command: ICommand | null = null;
 
-  private isModifyingSelection = false;
-  private modifyingNodeStartTransformMap: Map<string, Matrix> = new Map();
+  private isMovingSelection = false;
+  private modifyingNodeStartAttrsMap: Map<string, Pick<IGraphicsAttrs, 'transform' | 'size'>> = new Map();
 
   private targetControlPoint: IWondControlPoint<IGraphicsAttrs> | null = null;
 
@@ -60,6 +73,18 @@ export class ToolMove extends ToolBase {
     internalAPI.getCursorManager().setCursor('default');
   };
 
+  private recordModifyingNodeStartAttrs(internalAPI: IInternalAPI) {
+    const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelectionsCopy())
+      .map((nodeId) => internalAPI.getSceneGraph().getNodeById(nodeId))
+      .filter((node) => node != undefined);
+    selectionNodes.forEach((node) => {
+      this.modifyingNodeStartAttrsMap.set(node.attrs.id, {
+        transform: { ...node.attrs.transform },
+        size: { ...node.attrs.size },
+      });
+    });
+  }
+
   onStart = (event: IMouseEvent, internalAPI: IInternalAPI) => {
     this.startPoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
@@ -74,6 +99,7 @@ export class ToolMove extends ToolBase {
     if (targetControlPoint) {
       // ready to process drag event for control point.
       this.targetControlPoint = targetControlPoint;
+      this.recordModifyingNodeStartAttrs(internalAPI);
       this.targetControlPoint.onDragStart(event, internalAPI);
       return;
     }
@@ -81,7 +107,7 @@ export class ToolMove extends ToolBase {
     const currentSelectionBoundingArea = internalAPI.getSceneGraph().getSelectionsBoundingArea();
     const selectionNode = internalAPI.getSceneGraph().pickNodeAtPoint(this.startPoint);
     if (selectionNode) {
-      this.isModifyingSelection = true;
+      this.isMovingSelection = true;
       internalAPI.getSceneGraph().setHoverNode(selectionNode.attrs.id);
 
       if (!currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
@@ -92,7 +118,7 @@ export class ToolMove extends ToolBase {
       }
     } else {
       if (currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
-        this.isModifyingSelection = true;
+        this.isMovingSelection = true;
       } else {
         // if no selection node is picked, check if the start point is in the current selection bounding area.
         if (internalAPI.getSceneGraph().getSelectionsCopy().size > 0) {
@@ -101,14 +127,9 @@ export class ToolMove extends ToolBase {
       }
     }
 
-    if (this.isModifyingSelection) {
+    if (this.isMovingSelection) {
       // cache the init transform of the selection nodes.
-      const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelectionsCopy())
-        .map((nodeId) => internalAPI.getSceneGraph().getNodeById(nodeId))
-        .filter((node) => node != undefined);
-      selectionNodes.forEach((node) => {
-        this.modifyingNodeStartTransformMap.set(node.attrs.id, { ...node.attrs.transform });
-      });
+      this.recordModifyingNodeStartAttrs(internalAPI);
     }
   };
 
@@ -146,11 +167,44 @@ export class ToolMove extends ToolBase {
 
     if (this.targetControlPoint) {
       // process drag event for control point.
-      const updateProperty = this.targetControlPoint.onDrag(event, internalAPI);
-      if (updateProperty) {
-        this.getCommand(internalAPI).addOperations([
-          new WondUpdatePropertyOperation(this.targetControlPoint.refGraphic, updateProperty),
-        ]);
+      const addedTransform = this.targetControlPoint.onDrag(event, internalAPI);
+      if (addedTransform) {
+        const newOperations: IOperation[] = [];
+        for (const graphics of this.targetControlPoint.refGraphics) {
+          const startAttrs = this.modifyingNodeStartAttrsMap.get(graphics.attrs.id);
+          if (startAttrs) {
+            const newTransform = compose([addedTransform, startAttrs.transform]);
+            const decomposedTransform = decomposeTSR(newTransform);
+
+            const newSize = {
+              x: startAttrs.size.x * decomposedTransform.scale.sx,
+              y: startAttrs.size.y * decomposedTransform.scale.sy,
+            };
+
+            const isAxisAligned = isAxisAlignedAfterTransform(startAttrs.transform);
+            if (isAxisAligned) {
+              newSize.x = Math.round(newSize.x);
+              newSize.y = Math.round(newSize.y);
+
+              decomposedTransform.translate = {
+                tx: Math.round(decomposedTransform.translate.tx),
+                ty: Math.round(decomposedTransform.translate.ty),
+              };
+            }
+
+            const noScaleTransform = compose([
+              translate(decomposedTransform.translate.tx, decomposedTransform.translate.ty),
+              rotate(decomposedTransform.rotation.angle),
+            ]);
+            newOperations.push(
+              new WondUpdatePropertyOperation<IGraphicsAttrs>(graphics, {
+                transform: noScaleTransform,
+                size: newSize,
+              }),
+            );
+          }
+        }
+        this.getCommand(internalAPI).addOperations(newOperations);
       }
       return;
     }
@@ -160,7 +214,7 @@ export class ToolMove extends ToolBase {
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
 
-    if (!this.isModifyingSelection) {
+    if (!this.isMovingSelection) {
       // try to select nodes by range box.
       const selectionRange: BBox = {
         minX: Math.min(this.startPoint.x, endPoint.x),
@@ -194,9 +248,10 @@ export class ToolMove extends ToolBase {
 
       internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
 
-      for (const [nodeId, startTransform] of this.modifyingNodeStartTransformMap.entries()) {
+      for (const [nodeId, startAttrs] of this.modifyingNodeStartAttrsMap.entries()) {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
         if (node) {
+          const startTransform = startAttrs.transform;
           this.getCommand(internalAPI).addOperations([
             new WondUpdatePropertyOperation<IGraphicsAttrs>(node, {
               transform: {
@@ -212,8 +267,8 @@ export class ToolMove extends ToolBase {
   };
 
   onEnd = (event: IMouseEvent, internalAPI: IInternalAPI) => {
-    this.isModifyingSelection = false;
-    this.modifyingNodeStartTransformMap.clear();
+    this.isMovingSelection = false;
+    this.modifyingNodeStartAttrsMap.clear();
 
     this.targetControlPoint?.onDragEnd(event, internalAPI);
     this.targetControlPoint = null;

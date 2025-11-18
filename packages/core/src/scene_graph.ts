@@ -4,7 +4,7 @@ import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
 import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
 import { getCanvasKitContext } from './context';
-import { calculateEdgeAngle, getEdgeVectors, rad2deg, type WondBoundingArea } from './geo';
+import { calculateEdgeAngle, getEdgeVectors, rad2deg } from './geo';
 import { WondDocument } from './graphics/document';
 import type {
   IInternalAPI,
@@ -16,7 +16,7 @@ import type {
   IWondPoint,
   WondGraphicDrawingContext,
 } from './interfaces';
-import { sceneCoordsToPaintCoords, scenePathToPaintPath, getMatrix3x3FromTransform, generateShapePath } from './utils';
+import { sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
 
 export class WondSceneGraph implements ISceneGraph {
   private readonly internalAPI: IInternalAPI;
@@ -490,7 +490,7 @@ export class WondSceneGraph implements ISceneGraph {
 
       sizeText = `${+selectedNode.attrs.size.x.toFixed(2)} x ${+selectedNode.attrs.size.y.toFixed(2)}`;
     } else {
-      let targetSelectionArea: WondBoundingArea | null = null;
+      let targetSelectionArea: IBoundingArea | null = null;
       for (const child of selectedNodes) {
         if (targetSelectionArea === null) {
           targetSelectionArea = child.getBoundingArea();
@@ -520,7 +520,7 @@ export class WondSceneGraph implements ISceneGraph {
         { x: targetSelectionArea.left, y: targetSelectionArea.bottom },
       ].map((point) => sceneCoordsToPaintCoords(point, context.viewSpaceMeta));
 
-      sizeText = `${targetSelectionArea.getWidth()} x ${targetSelectionArea.getHeight()}`;
+      sizeText = `${+targetSelectionArea.getWidth().toFixed(2)} x ${+targetSelectionArea.getHeight().toFixed(2)}`;
     }
 
     if (edgePoints.length === 0) {

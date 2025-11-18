@@ -85,56 +85,56 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
 
     if (!this._controlPointsCache[WondControlPointType.N_Resize]) {
       this._controlPointsCache[WondControlPointType.N_Resize] = new EdgeResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.N_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.S_Resize]) {
       this._controlPointsCache[WondControlPointType.S_Resize] = new EdgeResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.S_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.E_Resize]) {
       this._controlPointsCache[WondControlPointType.E_Resize] = new EdgeResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.E_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.W_Resize]) {
       this._controlPointsCache[WondControlPointType.W_Resize] = new EdgeResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.W_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.NW_Resize]) {
       this._controlPointsCache[WondControlPointType.NW_Resize] = new CornerResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.NW_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.NE_Resize]) {
       this._controlPointsCache[WondControlPointType.NE_Resize] = new CornerResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.NE_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.SW_Resize]) {
       this._controlPointsCache[WondControlPointType.SW_Resize] = new CornerResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.SW_Resize,
       );
     }
 
     if (!this._controlPointsCache[WondControlPointType.SE_Resize]) {
       this._controlPointsCache[WondControlPointType.SE_Resize] = new CornerResizeControlPoint(
-        this,
+        [this],
         WondControlPointType.SE_Resize,
       );
     }

@@ -8,21 +8,23 @@ import type {
   IGraphics,
   ViewSpaceMeta,
   IWondPoint,
+  IBoundingArea,
 } from '../../interfaces';
 import type { IWondCursor } from '../../cursor_manager';
 import { getCanvasKitContext } from '../../context';
 import type { Path } from 'canvaskit-wasm';
 import { generateShapePath, getMatrix3x3FromTransform, sceneCoordsToPaintCoords } from '../../utils';
+import type { Matrix } from 'transformation-matrix';
 
 export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> implements IWondControlPoint<T> {
-  refGraphic: IGraphics<T>;
+  refGraphics: IGraphics<T>[];
   type: WondControlPointType;
   visible = false;
   shape: WondControlPointShape = 'circle';
   _cachePath: Path;
 
-  constructor(graphics: IGraphics<T>, type: WondControlPointType) {
-    this.refGraphic = graphics;
+  constructor(graphics: IGraphics<T>[], type: WondControlPointType) {
+    this.refGraphics = graphics;
     this.type = type;
     const { canvaskit } = getCanvasKitContext();
     this._cachePath = new canvaskit.Path();
@@ -37,11 +39,46 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
 
     const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
     generateShapePath(this._cachePath, this.shape, anchorPaintPos);
-    this._cachePath.transform(
-      getMatrix3x3FromTransform({ ...this.refGraphic.attrs.transform, a: 1, d: 1, e: 0, f: 0 }),
-    );
+    const refGraphicsAttrs = this.getRefGraphicsAttrs();
+    this._cachePath.transform(getMatrix3x3FromTransform({ ...refGraphicsAttrs.transform, a: 1, d: 1, e: 0, f: 0 }));
 
     return this._cachePath;
+  }
+
+  protected getRefGraphicsAttrs(): Pick<T, 'transform' | 'size'> {
+    if (this.refGraphics.length === 0) {
+      return {
+        size: { x: 0, y: 0 },
+        transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      };
+    } else if (this.refGraphics.length === 1) {
+      const graphics = this.refGraphics[0];
+      return {
+        size: { ...graphics.attrs.size },
+        transform: { ...graphics.attrs.transform },
+      };
+    } else {
+      let accBoundingArea: IBoundingArea | null = null;
+      for (const graphics of this.refGraphics) {
+        if (accBoundingArea === null) {
+          accBoundingArea = graphics.getBoundingArea();
+        } else {
+          accBoundingArea = accBoundingArea.union(graphics.getBoundingArea());
+        }
+      }
+
+      if (accBoundingArea == null) {
+        return {
+          size: { x: 0, y: 0 },
+          transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+        };
+      }
+
+      return {
+        size: { x: accBoundingArea.getWidth(), y: accBoundingArea.getHeight() },
+        transform: { a: 1, b: 0, c: 0, d: 1, e: accBoundingArea.left, f: accBoundingArea.top },
+      };
+    }
   }
 
   public detectPoint(viewSpaceMeta: ViewSpaceMeta, point: IWondPoint): boolean {
@@ -60,11 +97,11 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
     return;
   }
 
-  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Partial<T> | void {
-    return;
+  public onDrag(event: IMouseEvent, internalAPI: IInternalAPI): Matrix | null {
+    return null;
   }
 
-  public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI): Partial<T> | void {
-    return;
+  public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI): Matrix | null {
+    return null;
   }
 }
