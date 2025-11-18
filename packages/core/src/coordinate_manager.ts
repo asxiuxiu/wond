@@ -10,6 +10,7 @@ export class WondCoordinateManager implements ICoordinateManager {
     sceneScrollX: 0,
     sceneScrollY: 0,
     zoom: 1,
+    dpr: 1,
   };
 
   constructor(internalAPI: IInternalAPI) {
@@ -19,8 +20,15 @@ export class WondCoordinateManager implements ICoordinateManager {
 
   private initViewportMeta() {
     const boundingBox = this.canvasElement.getBoundingClientRect();
+    const windowDpr = window.devicePixelRatio || 1;
+    const canvasWidth = boundingBox.width * windowDpr;
+    const canvasHeight = boundingBox.height * windowDpr;
+    this.canvasElement.width = canvasWidth;
+    this.canvasElement.height = canvasHeight;
+
     this.viewSpaceMeta.viewportOffsetX = boundingBox.left;
     this.viewSpaceMeta.viewportOffsetY = boundingBox.top;
+    this.viewSpaceMeta.dpr = windowDpr;
   }
 
   public updateViewSpaceMeta(meta: Partial<ViewSpaceMeta>) {

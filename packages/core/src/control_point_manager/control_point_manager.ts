@@ -6,7 +6,7 @@ import {
   type IGraphics,
   WondControlPointType,
 } from '../interfaces';
-import { CornerResizeControlPoint, EdgeResizeControlPoint } from './control_points';
+import { CornerResizeControlPoint, CornerRotateControlPoint, EdgeResizeControlPoint } from './control_points';
 
 export class WondControlPointManager implements IControlPointManager {
   private readonly internalAPI: IInternalAPI;
@@ -31,6 +31,11 @@ export class WondControlPointManager implements IControlPointManager {
       this.controlPoints = this.controlPointSource[0].getControlPoints();
     } else if (this.controlPointSource.length > 1) {
       // calculate the the control points by bounding area.
+      const NW_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.NW_Rotate);
+      const NE_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.NE_Rotate);
+      const SW_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.SW_Rotate);
+      const SE_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.SE_Rotate);
+
       const N_Resize_CP = new EdgeResizeControlPoint([...this.controlPointSource], WondControlPointType.N_Resize);
       const S_Resize_CP = new EdgeResizeControlPoint([...this.controlPointSource], WondControlPointType.S_Resize);
       const E_Resize_CP = new EdgeResizeControlPoint([...this.controlPointSource], WondControlPointType.E_Resize);
@@ -42,6 +47,10 @@ export class WondControlPointManager implements IControlPointManager {
       const SE_Resize_CP = new CornerResizeControlPoint([...this.controlPointSource], WondControlPointType.SE_Resize);
 
       this.controlPoints = [
+        NW_Rotate_CP,
+        NE_Rotate_CP,
+        SW_Rotate_CP,
+        SE_Rotate_CP,
         N_Resize_CP,
         S_Resize_CP,
         E_Resize_CP,

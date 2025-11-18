@@ -9,7 +9,7 @@ import type {
   IOperation,
 } from '../interfaces';
 import type { BBox } from 'rbush';
-import { compose, decomposeTSR, rotate, translate, type Matrix } from 'transformation-matrix';
+import { applyToPoints, compose, inverse, scale } from 'transformation-matrix';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
 import {
@@ -173,32 +173,36 @@ export class ToolMove extends ToolBase {
         for (const graphics of this.targetControlPoint.refGraphics) {
           const startAttrs = this.modifyingNodeStartAttrsMap.get(graphics.attrs.id);
           if (startAttrs) {
-            const newTransform = compose([addedTransform, startAttrs.transform]);
-            const decomposedTransform = decomposeTSR(newTransform);
+            let newTransform = compose([addedTransform, startAttrs.transform]);
+
+            const [NW_Point, NE_Point, SW_Point] = applyToPoints(newTransform, [
+              { x: 0, y: 0 },
+              { x: startAttrs.size.x, y: 0 },
+              { x: 0, y: startAttrs.size.y },
+            ]);
 
             const newSize = {
-              x: startAttrs.size.x * decomposedTransform.scale.sx,
-              y: startAttrs.size.y * decomposedTransform.scale.sy,
+              x: distance(NW_Point, NE_Point),
+              y: distance(NW_Point, SW_Point),
             };
 
-            const isAxisAligned = isAxisAlignedAfterTransform(startAttrs.transform);
+            const isAxisAligned = isAxisAlignedAfterTransform(newTransform);
             if (isAxisAligned) {
               newSize.x = Math.round(newSize.x);
               newSize.y = Math.round(newSize.y);
-
-              decomposedTransform.translate = {
-                tx: Math.round(decomposedTransform.translate.tx),
-                ty: Math.round(decomposedTransform.translate.ty),
-              };
             }
 
-            const noScaleTransform = compose([
-              translate(decomposedTransform.translate.tx, decomposedTransform.translate.ty),
-              rotate(decomposedTransform.rotation.angle),
-            ]);
+            const appendScale = {
+              x: newSize.x / startAttrs.size.x,
+              y: newSize.y / startAttrs.size.y,
+            };
+
+            // N = N' * S^-1
+            newTransform = compose([newTransform, inverse(scale(appendScale.x, appendScale.y))]);
+
             newOperations.push(
               new WondUpdatePropertyOperation<IGraphicsAttrs>(graphics, {
-                transform: noScaleTransform,
+                transform: newTransform,
                 size: newSize,
               }),
             );
@@ -206,6 +210,8 @@ export class ToolMove extends ToolBase {
         }
         this.getCommand(internalAPI).addOperations(newOperations);
       }
+
+      internalAPI.getCursorManager().setCursor(this.targetControlPoint.getCursor());
       return;
     }
 

@@ -1,4 +1,4 @@
-import { applyToPoint, compose, scale, translate } from 'transformation-matrix';
+import { applyToPoint, compose, scale, translate, type Matrix } from 'transformation-matrix';
 import type { IWondPoint, ViewSpaceMeta } from '../interfaces';
 import { getMatrix3x3FromTransform } from './transform_utils';
 import type { Path } from 'canvaskit-wasm';
@@ -61,4 +61,8 @@ export const scenePathToPaintPath = (scenePath: Path, viewSpaceMeta: ViewSpaceMe
     translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY),
   ]);
   return scenePath.transform(getMatrix3x3FromTransform(transform));
+};
+
+export const getTransformFromSceneToPaint = (viewSpaceMeta: ViewSpaceMeta): Matrix => {
+  return compose([scale(viewSpaceMeta.zoom), translate(viewSpaceMeta.sceneScrollX, viewSpaceMeta.sceneScrollY)]);
 };

@@ -2,15 +2,19 @@ import type { Path } from 'canvaskit-wasm';
 import { getCanvasKitContext } from '../context';
 import { type IWondPoint, type WondControlPointShape, WondControlPointType } from '../interfaces';
 
-export const getCornerResizeControlPointNormalizedPos = (type: WondControlPointType): IWondPoint => {
+export const getCornerControlPointNormalizedPos = (type: WondControlPointType): IWondPoint => {
   switch (type) {
     case WondControlPointType.NW_Resize:
+    case WondControlPointType.NW_Rotate:
       return { x: 0, y: 0 };
     case WondControlPointType.NE_Resize:
+    case WondControlPointType.NE_Rotate:
       return { x: 1, y: 0 };
     case WondControlPointType.SW_Resize:
+    case WondControlPointType.SW_Rotate:
       return { x: 0, y: 1 };
     case WondControlPointType.SE_Resize:
+    case WondControlPointType.SE_Rotate:
       return { x: 1, y: 1 };
     default:
       return { x: -1, y: -1 };
@@ -70,16 +74,20 @@ export const getResizeControlPointFixedType = (type: WondControlPointType): Wond
   }
 };
 
-export const getResizeBaseDegree = (type: WondControlPointType): number => {
+export const getControlPointBaseDegree = (type: WondControlPointType): number => {
   switch (type) {
     case WondControlPointType.NW_Resize:
+    case WondControlPointType.NW_Rotate:
       return -45;
     case WondControlPointType.NE_Resize:
-      return 45;
-    case WondControlPointType.SW_Resize:
+    case WondControlPointType.NE_Rotate:
       return 45;
     case WondControlPointType.SE_Resize:
-      return -45;
+    case WondControlPointType.SE_Rotate:
+      return 135;
+    case WondControlPointType.SW_Resize:
+    case WondControlPointType.SW_Rotate:
+      return 225;
     default:
       return 0;
   }

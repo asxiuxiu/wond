@@ -23,6 +23,7 @@ export interface ViewSpaceMeta {
   sceneScrollX: number;
   sceneScrollY: number;
   zoom: number;
+  dpr: number;
 }
 
 export interface WondGraphicDrawingContext {

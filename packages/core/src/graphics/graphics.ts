@@ -13,7 +13,7 @@ import { getUuid } from '@wond/common';
 import { getCanvasKitContext } from '../context';
 import type { BBox } from 'rbush';
 import type { Path } from 'canvaskit-wasm';
-import { CornerResizeControlPoint, EdgeResizeControlPoint } from '../control_point_manager';
+import { CornerResizeControlPoint, CornerRotateControlPoint, EdgeResizeControlPoint } from '../control_point_manager';
 
 export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements BBox, IGraphics<T> {
   get minX(): number {
@@ -83,6 +83,34 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
   public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     // create or update the resize control points.
 
+    if (!this._controlPointsCache[WondControlPointType.NW_Rotate]) {
+      this._controlPointsCache[WondControlPointType.NW_Rotate] = new CornerRotateControlPoint(
+        [this],
+        WondControlPointType.NW_Rotate,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.NE_Rotate]) {
+      this._controlPointsCache[WondControlPointType.NE_Rotate] = new CornerRotateControlPoint(
+        [this],
+        WondControlPointType.NE_Rotate,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.SW_Rotate]) {
+      this._controlPointsCache[WondControlPointType.SW_Rotate] = new CornerRotateControlPoint(
+        [this],
+        WondControlPointType.SW_Rotate,
+      );
+    }
+
+    if (!this._controlPointsCache[WondControlPointType.SE_Rotate]) {
+      this._controlPointsCache[WondControlPointType.SE_Rotate] = new CornerRotateControlPoint(
+        [this],
+        WondControlPointType.SE_Rotate,
+      );
+    }
+
     if (!this._controlPointsCache[WondControlPointType.N_Resize]) {
       this._controlPointsCache[WondControlPointType.N_Resize] = new EdgeResizeControlPoint(
         [this],
@@ -140,6 +168,10 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
     }
 
     return [
+      WondControlPointType.NW_Rotate,
+      WondControlPointType.NE_Rotate,
+      WondControlPointType.SW_Rotate,
+      WondControlPointType.SE_Rotate,
       WondControlPointType.N_Resize,
       WondControlPointType.S_Resize,
       WondControlPointType.E_Resize,

@@ -14,7 +14,8 @@ import type { IWondCursor } from '../../cursor_manager';
 import { getCanvasKitContext } from '../../context';
 import type { Path } from 'canvaskit-wasm';
 import { generateShapePath, getMatrix3x3FromTransform, sceneCoordsToPaintCoords } from '../../utils';
-import type { Matrix } from 'transformation-matrix';
+import { compose, decomposeTSR, translate, type Matrix } from 'transformation-matrix';
+import { rad2deg } from '../../geo';
 
 export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> implements IWondControlPoint<T> {
   refGraphics: IGraphics<T>[];
@@ -32,6 +33,9 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
 
   public getDrawPath(viewSpaceMeta: ViewSpaceMeta): Path {
     this._cachePath.reset();
+    if (!this.visible) {
+      return this._cachePath;
+    }
     const anchorScenePos = this.getAnchorScenePos();
     if (anchorScenePos.x < 0 || anchorScenePos.y < 0) {
       return this._cachePath;
@@ -40,7 +44,15 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
     const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
     generateShapePath(this._cachePath, this.shape, anchorPaintPos);
     const refGraphicsAttrs = this.getRefGraphicsAttrs();
-    this._cachePath.transform(getMatrix3x3FromTransform({ ...refGraphicsAttrs.transform, a: 1, d: 1, e: 0, f: 0 }));
+    this._cachePath.transform(
+      getMatrix3x3FromTransform(
+        compose([
+          translate(anchorPaintPos.x, anchorPaintPos.y),
+          { ...refGraphicsAttrs.transform, e: 0, f: 0 },
+          translate(-anchorPaintPos.x, -anchorPaintPos.y),
+        ]),
+      ),
+    );
 
     return this._cachePath;
   }
@@ -83,6 +95,14 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
 
   public detectPoint(viewSpaceMeta: ViewSpaceMeta, point: IWondPoint): boolean {
     return false;
+  }
+
+  protected getRefGraphicsRotateDeg() {
+    if (this.refGraphics.length === 0 || this.refGraphics.length > 1) return 0;
+    const graphics = this.refGraphics[0];
+    const transform = graphics.attrs.transform;
+    const decomposedTransform = decomposeTSR(transform);
+    return rad2deg(decomposedTransform.rotation.angle);
   }
 
   protected getAnchorScenePos() {

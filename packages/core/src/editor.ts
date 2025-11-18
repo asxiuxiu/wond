@@ -38,8 +38,8 @@ export class WondEditor implements IEditor {
     const canvasWrapper = options.container;
     const boundingBox = canvasWrapper.getBoundingClientRect();
     const canvasElement = document.createElement('canvas');
-    canvasElement.width = boundingBox.width;
-    canvasElement.height = boundingBox.height;
+    canvasElement.style.width = `${boundingBox.width}px`;
+    canvasElement.style.height = `${boundingBox.height}px`;
     canvasWrapper.appendChild(canvasElement);
     this.#canvasRootElement = canvasElement;
 

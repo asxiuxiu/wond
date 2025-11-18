@@ -7,8 +7,8 @@ import type {
   ViewSpaceMeta,
 } from '../../interfaces';
 import {
-  getResizeBaseDegree,
-  getCornerResizeControlPointNormalizedPos,
+  getControlPointBaseDegree,
+  getCornerControlPointNormalizedPos,
   getResizeControlPointFixedType,
   screenCoordsToSceneCoords,
   CONTROL_POINT_RADIUS,
@@ -19,6 +19,7 @@ import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
 import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 'transformation-matrix';
 import { getCanvasKitContext } from '../../context';
+import type { Path } from 'canvaskit-wasm';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
@@ -27,7 +28,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
   private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size'> | null = null;
 
   private getNormalizedPos() {
-    return getCornerResizeControlPointNormalizedPos(this.type);
+    return getCornerControlPointNormalizedPos(this.type);
   }
 
   protected getAnchorScenePos() {
@@ -41,7 +42,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
   }
 
   public detectPoint(viewSpaceMeta: ViewSpaceMeta, point: IWondPoint): boolean {
-    const radius = CONTROL_POINT_RADIUS + 3;
+    const radius = CONTROL_POINT_RADIUS + 2;
 
     this._cachePath.reset();
 
@@ -58,13 +59,21 @@ export class CornerResizeControlPoint extends ControlPointBase {
       ),
     );
     const refGraphicsAttrs = this.getRefGraphicsAttrs();
-    this._cachePath.transform(getMatrix3x3FromTransform({ ...refGraphicsAttrs.transform, a: 1, d: 1, e: 0, f: 0 }));
+    this._cachePath.transform(
+      getMatrix3x3FromTransform(
+        compose([
+          translate(anchorPaintPos.x, anchorPaintPos.y),
+          { ...refGraphicsAttrs.transform, e: 0, f: 0 },
+          translate(-anchorPaintPos.x, -anchorPaintPos.y),
+        ]),
+      ),
+    );
 
     return this._cachePath.contains(point.x, point.y);
   }
 
   public getCursor(): IWondCursor {
-    return { type: 'resize', degree: getResizeBaseDegree(this.type) };
+    return { type: 'resize', degree: getControlPointBaseDegree(this.type) + this.getRefGraphicsRotateDeg() };
   }
 
   public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {
@@ -92,7 +101,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
     if (!fixedControlPointType) {
       return null;
     }
-    const fixedNormalizedPos = getCornerResizeControlPointNormalizedPos(fixedControlPointType);
+    const fixedNormalizedPos = getCornerControlPointNormalizedPos(fixedControlPointType);
 
     const fixedPointInLocalSpace = {
       x: this.originAttrs.size.x * fixedNormalizedPos.x || 0,

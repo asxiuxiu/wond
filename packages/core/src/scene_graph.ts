@@ -4,7 +4,7 @@ import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
 import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
 import { getCanvasKitContext } from './context';
-import { calculateEdgeAngle, getEdgeVectors, rad2deg } from './geo';
+import { getEdgeVectors, rad2deg } from './geo';
 import { WondDocument } from './graphics/document';
 import type {
   IInternalAPI,
@@ -536,17 +536,12 @@ export class WondSceneGraph implements ISceneGraph {
     }
 
     let targetEdge: IWondEdge | null = null;
-    let minAngle: number = Infinity;
     let maxY: number = -Infinity;
 
     for (const edge of boundingEdges) {
       const midY = (edge.start.y + edge.end.y) / 2;
-
-      const angle = Math.abs(calculateEdgeAngle(edge));
-      const horizontalAngle = Math.min(angle, Math.PI - angle);
-      if (horizontalAngle < minAngle || (horizontalAngle === minAngle && midY > maxY)) {
+      if (midY > maxY) {
         targetEdge = edge;
-        minAngle = horizontalAngle;
         maxY = midY;
       }
     }
@@ -733,12 +728,16 @@ export class WondSceneGraph implements ISceneGraph {
         viewSpaceMeta,
         cachePaintCollection: this.cachePaintCollection,
       };
+      canvas.save();
+      canvas.scale(viewSpaceMeta.dpr, viewSpaceMeta.dpr);
 
       this.drawBackgroundLayer(context);
 
       this.drawContentLayer(context);
 
       this.drawOverlayLayer(context);
+
+      canvas.restore();
 
       this.paintSurface?.requestAnimationFrame(drawFrame);
     };

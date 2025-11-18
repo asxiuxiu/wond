@@ -44,7 +44,7 @@ export class EdgeResizeControlPoint extends ControlPointBase {
     const nx = -dy / len;
     const ny = dx / len;
 
-    const OFFSET = 8;
+    const OFFSET = 6;
 
     const p1 = {
       x: startPaintSpacePoint.x + nx * OFFSET,
