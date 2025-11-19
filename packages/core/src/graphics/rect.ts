@@ -24,12 +24,7 @@ export class WondRect extends WondGraphics<WondRectAttrs> {
     const { canvaskit } = getCanvasKitContext();
     const paint = new canvaskit.Paint();
     paint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_FILL_COLOR.r / 255,
-        DEFAULT_FILL_COLOR.g / 255,
-        DEFAULT_FILL_COLOR.b / 255,
-        DEFAULT_FILL_COLOR.a,
-      ),
+      canvaskit.Color(DEFAULT_FILL_COLOR.r, DEFAULT_FILL_COLOR.g, DEFAULT_FILL_COLOR.b, DEFAULT_FILL_COLOR.a),
     );
     paint.setStyle(canvaskit.PaintStyle.Fill);
     paint.setAntiAlias(true);

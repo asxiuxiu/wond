@@ -19,6 +19,7 @@ import type {
 import {
   measureText,
   sceneCoordsToPaintCoords,
+  sceneLengthToPaintLength,
   scenePathToPaintPath,
   screenCoordsToPaintCoords,
   screenCoordsToSceneCoords,
@@ -90,7 +91,7 @@ export class WondSceneGraph implements ISceneGraph {
         paint.setStyle(canvaskit.PaintStyle.Fill);
       }
       paint.setAntiAlias(true);
-      paint.setColor(canvaskit.Color4f(value.color.r / 255, value.color.g / 255, value.color.b / 255, value.color.a));
+      paint.setColor(canvaskit.Color(value.color.r, value.color.g, value.color.b, value.color.a));
       this.cachePaintCollection.set(key, paint);
     });
   }
@@ -623,6 +624,7 @@ export class WondSceneGraph implements ISceneGraph {
     const { canvas, cachePaintCollection, viewSpaceMeta } = context;
     const { canvaskit } = getCanvasKitContext();
     const rulerStep = this.internalAPI.getRulerManager().getRulerStep();
+    const rulerPaintStep = sceneLengthToPaintLength(rulerStep, viewSpaceMeta);
     const rulerSize = this.internalAPI.getRulerManager().getRulerSize();
     const rulerBgPaint = cachePaintCollection.get('rulerBgPaint');
     const rulerTextPaint = cachePaintCollection.get('rulerTextPaint');
@@ -644,15 +646,28 @@ export class WondSceneGraph implements ISceneGraph {
     }
 
     const { left, top, right, bottom } = viewSpaceMeta.canvasBoundingBox;
-    const NW_paintPoint = screenCoordsToPaintCoords({ x: left, y: top }, viewSpaceMeta);
-    const SE_paintPoint = screenCoordsToPaintCoords({ x: right, y: bottom }, viewSpaceMeta);
+    const NW_canvasScenePoint = screenCoordsToSceneCoords({ x: left, y: top }, viewSpaceMeta);
+    const SE_canvasScenePoint = screenCoordsToSceneCoords({ x: right, y: bottom }, viewSpaceMeta);
+    const NW_canvasPaintPoint = screenCoordsToPaintCoords({ x: left, y: top }, viewSpaceMeta);
+    const SE_canvasPaintPoint = screenCoordsToPaintCoords({ x: right, y: bottom }, viewSpaceMeta);
+
     // draw the ruler bg
     const rulerBgPath = new canvaskit.Path();
     rulerBgPath.addRect(
-      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, NW_paintPoint.x + rulerSize, SE_paintPoint.y),
+      canvaskit.LTRBRect(
+        NW_canvasPaintPoint.x,
+        NW_canvasPaintPoint.y,
+        NW_canvasPaintPoint.x + rulerSize,
+        SE_canvasPaintPoint.y,
+      ),
     );
     rulerBgPath.addRect(
-      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, SE_paintPoint.x, NW_paintPoint.y + rulerSize),
+      canvaskit.LTRBRect(
+        NW_canvasPaintPoint.x,
+        NW_canvasPaintPoint.y,
+        SE_canvasPaintPoint.x,
+        NW_canvasPaintPoint.y + rulerSize,
+      ),
     );
     canvas.drawPath(rulerBgPath, rulerBgPaint);
 
@@ -665,40 +680,144 @@ export class WondSceneGraph implements ISceneGraph {
     if (selectedNodes.length !== 0) {
       selectedNodes.forEach((node) => {
         const boundingArea = node.getBoundingArea();
-        const NW_PaintPoint = sceneCoordsToPaintCoords({ x: boundingArea.left, y: boundingArea.top }, viewSpaceMeta);
-        const SE_PaintPoint = sceneCoordsToPaintCoords(
-          { x: boundingArea.right, y: boundingArea.bottom },
-          viewSpaceMeta,
-        );
-        horizontalSegments.push([NW_PaintPoint.x, SE_PaintPoint.x]);
-        verticalSegments.push([NW_PaintPoint.y, SE_PaintPoint.y]);
+        horizontalSegments.push([boundingArea.left, boundingArea.right]);
+        verticalSegments.push([boundingArea.top, boundingArea.bottom]);
       });
 
       mergeSegments(horizontalSegments);
       mergeSegments(verticalSegments);
     }
 
+    const segPointTextPropertyMap = new Map<
+      number,
+      { text: string; paintCoords: number; width: number; height: number; baseline: number }
+    >();
+
+    const addSegPointToMap = (segPoint: number, isHorizontal: boolean) => {
+      const text = (+segPoint.toFixed(3)).toString();
+      const textMetrics = measureText(text, rulerFont, rulerSelectionTextPaint);
+      let paintCoords = 0;
+      if (isHorizontal) {
+        paintCoords = sceneCoordsToPaintCoords({ x: segPoint, y: 0 }, viewSpaceMeta).x;
+      } else {
+        paintCoords = sceneCoordsToPaintCoords({ x: 0, y: segPoint }, viewSpaceMeta).y;
+      }
+
+      const segPointProperty = {
+        text,
+        paintCoords,
+        ...textMetrics,
+      };
+
+      segPointTextPropertyMap.set(segPoint, segPointProperty);
+
+      return segPointProperty;
+    };
+
     if (horizontalSegments.length > 0 || verticalSegments.length > 0) {
       const rulerSelectionBgPath = new canvaskit.Path();
       for (const seg of horizontalSegments) {
-        rulerSelectionBgPath.addRect(canvaskit.LTRBRect(seg[0], NW_paintPoint.y, seg[1], NW_paintPoint.y + rulerSize));
+        const segStartProperty = addSegPointToMap(seg[0], true);
+        const segEndProperty = addSegPointToMap(seg[1], true);
+
+        rulerSelectionBgPath.addRect(
+          canvaskit.LTRBRect(
+            segStartProperty.paintCoords,
+            NW_canvasPaintPoint.y,
+            segEndProperty.paintCoords,
+            NW_canvasPaintPoint.y + rulerSize,
+          ),
+        );
       }
+
       for (const seg of verticalSegments) {
-        rulerSelectionBgPath.addRect(canvaskit.LTRBRect(NW_paintPoint.x, seg[0], NW_paintPoint.x + rulerSize, seg[1]));
+        const segStartProperty = addSegPointToMap(seg[0], false);
+        const segEndProperty = addSegPointToMap(seg[1], false);
+
+        rulerSelectionBgPath.addRect(
+          canvaskit.LTRBRect(
+            NW_canvasPaintPoint.x,
+            segStartProperty.paintCoords,
+            NW_canvasPaintPoint.x + rulerSize,
+            segEndProperty.paintCoords,
+          ),
+        );
       }
       canvas.drawPath(rulerSelectionBgPath, rulerSelectionBgPaint);
     }
 
-    const NW_scene_point = screenCoordsToSceneCoords({ x: left, y: top }, viewSpaceMeta);
-    const SE_scene_point = screenCoordsToSceneCoords({ x: right, y: bottom }, viewSpaceMeta);
-
     const tickLength = 5;
-    const tickTextOffset = 10;
+    const tickTextOffset = 8;
+    const selectionTextOffset = 4;
 
     // horizontal ticks
-    let startX = Math.ceil(NW_scene_point.x / rulerStep) * rulerStep;
-    for (let x = startX; x < SE_scene_point.x + rulerStep; x += rulerStep) {
-      const paintPoint = sceneCoordsToPaintCoords({ x, y: NW_scene_point.y }, viewSpaceMeta);
+    let startX = Math.ceil(NW_canvasScenePoint.x / rulerStep) * rulerStep;
+    for (let x = startX; x < SE_canvasScenePoint.x + rulerStep; x += rulerStep) {
+      const paintPoint = sceneCoordsToPaintCoords({ x, y: NW_canvasScenePoint.y }, viewSpaceMeta);
+
+      let paintOpacity = 1;
+      for (const seg of horizontalSegments) {
+        const startTextProperty = segPointTextPropertyMap.get(seg[0]);
+        if (startTextProperty) {
+          const startLeft = startTextProperty.paintCoords - startTextProperty.width - selectionTextOffset;
+          const startRight = startTextProperty.paintCoords;
+
+          if (paintPoint.x < startLeft && startLeft - paintPoint.x < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(startLeft - paintPoint.x - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.x > startRight && paintPoint.x - startRight < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(paintPoint.x - startRight - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.x >= startLeft && paintPoint.x <= startRight) {
+            paintOpacity = 0;
+          }
+        }
+
+        const endTextProperty = segPointTextPropertyMap.get(seg[1]);
+        if (endTextProperty) {
+          const endL = endTextProperty.paintCoords;
+          const endR = endTextProperty.paintCoords + endTextProperty.width + selectionTextOffset;
+          if (paintPoint.x < endL && endL - paintPoint.x < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(endL - paintPoint.x - rulerPaintStep * 0.5, 0) / (rulerPaintStep / 2),
+            );
+          } else if (paintPoint.x > endR && paintPoint.x - endR < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(paintPoint.x - endR - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.x >= endL && paintPoint.x <= endR) {
+            paintOpacity = 0;
+          }
+        }
+      }
+
+      const rulerTextPaintColor = canvaskit.getColorComponents(rulerTextPaint.getColor());
+      const rulerTickPaintColor = canvaskit.getColorComponents(rulerTickPaint.getColor());
+      if (paintOpacity < 1) {
+        rulerTextPaint.setColor(
+          canvaskit.Color(
+            rulerTextPaintColor[0],
+            rulerTextPaintColor[1],
+            rulerTextPaintColor[2],
+            rulerTextPaintColor[3] * paintOpacity,
+          ),
+        );
+
+        rulerTickPaint.setColor(
+          canvaskit.Color(
+            rulerTickPaintColor[0],
+            rulerTickPaintColor[1],
+            rulerTickPaintColor[2],
+            rulerTickPaintColor[3] * paintOpacity,
+          ),
+        );
+      }
 
       const tickPath = new canvaskit.Path();
       tickPath.moveTo(paintPoint.x, paintPoint.y + rulerSize);
@@ -710,13 +829,83 @@ export class WondSceneGraph implements ISceneGraph {
 
       const textX = paintPoint.x - textMetrics.width / 2;
       const textY = paintPoint.y + rulerSize - tickTextOffset;
+
       canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
+      rulerTextPaint.setColor(
+        canvaskit.Color(rulerTextPaintColor[0], rulerTextPaintColor[1], rulerTextPaintColor[2], rulerTextPaintColor[3]),
+      );
+      rulerTickPaint.setColor(
+        canvaskit.Color(rulerTickPaintColor[0], rulerTickPaintColor[1], rulerTickPaintColor[2], rulerTickPaintColor[3]),
+      );
     }
 
     // vertical ticks
-    let startY = Math.ceil(NW_scene_point.y / rulerStep) * rulerStep;
-    for (let y = startY; y < SE_scene_point.y + rulerStep; y += rulerStep) {
-      const paintPoint = sceneCoordsToPaintCoords({ x: NW_scene_point.x, y }, viewSpaceMeta);
+    let startY = Math.ceil(NW_canvasScenePoint.y / rulerStep) * rulerStep;
+    for (let y = startY; y < SE_canvasScenePoint.y + rulerStep; y += rulerStep) {
+      const paintPoint = sceneCoordsToPaintCoords({ x: NW_canvasScenePoint.x, y }, viewSpaceMeta);
+
+      let paintOpacity = 1;
+      for (const seg of verticalSegments) {
+        const startTextProperty = segPointTextPropertyMap.get(seg[0]);
+        if (startTextProperty) {
+          const startTop = startTextProperty.paintCoords - startTextProperty.width - selectionTextOffset;
+          const startBottom = startTextProperty.paintCoords;
+
+          if (paintPoint.y < startTop && startTop - paintPoint.y < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(startTop - paintPoint.y - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.y > startBottom && paintPoint.y - startBottom < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(paintPoint.y - startBottom - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.y >= startTop && paintPoint.y <= startBottom) {
+            paintOpacity = 0;
+          }
+        }
+
+        const endTextProperty = segPointTextPropertyMap.get(seg[1]);
+        if (endTextProperty) {
+          const endTop = endTextProperty.paintCoords;
+          const endBottom = endTextProperty.paintCoords + endTextProperty.width + selectionTextOffset;
+          if (paintPoint.y < endTop && endTop - paintPoint.y < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(endTop - paintPoint.y - rulerPaintStep * 0.5, 0) / (rulerPaintStep / 2),
+            );
+          } else if (paintPoint.y > endBottom && paintPoint.y - endBottom < rulerPaintStep * 1.5) {
+            paintOpacity = Math.min(
+              paintOpacity,
+              Math.max(paintPoint.y - endBottom - rulerPaintStep * 0.5, 0) / rulerPaintStep,
+            );
+          } else if (paintPoint.y >= endTop && paintPoint.y <= endBottom) {
+            paintOpacity = 0;
+          }
+        }
+      }
+      const rulerTextPaintColor = canvaskit.getColorComponents(rulerTextPaint.getColor());
+      const rulerTickPaintColor = canvaskit.getColorComponents(rulerTickPaint.getColor());
+      if (paintOpacity < 1) {
+        rulerTextPaint.setColor(
+          canvaskit.Color(
+            rulerTextPaintColor[0],
+            rulerTextPaintColor[1],
+            rulerTextPaintColor[2],
+            rulerTextPaintColor[3] * paintOpacity,
+          ),
+        );
+
+        rulerTickPaint.setColor(
+          canvaskit.Color(
+            rulerTickPaintColor[0],
+            rulerTickPaintColor[1],
+            rulerTickPaintColor[2],
+            rulerTickPaintColor[3] * paintOpacity,
+          ),
+        );
+      }
 
       const tickPath = new canvaskit.Path();
       tickPath.moveTo(paintPoint.x + rulerSize, paintPoint.y);
@@ -734,22 +923,87 @@ export class WondSceneGraph implements ISceneGraph {
       canvas.rotate(-90, textX, textY);
       canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
       canvas.restore();
+
+      rulerTextPaint.setColor(
+        canvaskit.Color(rulerTextPaintColor[0], rulerTextPaintColor[1], rulerTextPaintColor[2], rulerTextPaintColor[3]),
+      );
+      rulerTickPaint.setColor(
+        canvaskit.Color(rulerTickPaintColor[0], rulerTickPaintColor[1], rulerTickPaintColor[2], rulerTickPaintColor[3]),
+      );
+    }
+
+    // draw selection tick text
+    for (const seg of horizontalSegments) {
+      const startTextProperty = segPointTextPropertyMap.get(seg[0]);
+      if (startTextProperty) {
+        const { text, paintCoords, ...textMetrics } = startTextProperty;
+        canvas.drawText(
+          text,
+          paintCoords - textMetrics.width - selectionTextOffset,
+          NW_canvasPaintPoint.y + rulerSize - tickTextOffset,
+          rulerSelectionTextPaint,
+          rulerFont,
+        );
+      }
+
+      const endTextProperty = segPointTextPropertyMap.get(seg[1]);
+      if (endTextProperty) {
+        const { text, paintCoords } = endTextProperty;
+        canvas.drawText(
+          text,
+          paintCoords + selectionTextOffset,
+          NW_canvasPaintPoint.y + rulerSize - tickTextOffset,
+          rulerSelectionTextPaint,
+          rulerFont,
+        );
+      }
+    }
+
+    for (const seg of verticalSegments) {
+      const startTextProperty = segPointTextPropertyMap.get(seg[0]);
+      if (startTextProperty) {
+        const { text, paintCoords } = startTextProperty;
+
+        canvas.save();
+        const startTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
+        const startTextY = paintCoords - selectionTextOffset;
+        canvas.rotate(-90, startTextX, startTextY);
+        canvas.drawText(text, startTextX, startTextY, rulerSelectionTextPaint, rulerFont);
+        canvas.restore();
+      }
+
+      const endTextProperty = segPointTextPropertyMap.get(seg[1]);
+      if (endTextProperty) {
+        const { text, paintCoords, ...textMetrics } = endTextProperty;
+
+        canvas.save();
+        const endTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
+        const endTextY = paintCoords + textMetrics.width + selectionTextOffset;
+        canvas.rotate(-90, endTextX, endTextY);
+        canvas.drawText(text, endTextX, endTextY, rulerSelectionTextPaint, rulerFont);
+        canvas.restore();
+      }
     }
 
     // N-W corner mask
     const NW_maskPath = new canvaskit.Path();
     NW_maskPath.addRect(
-      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, NW_paintPoint.x + rulerSize, NW_paintPoint.y + rulerSize),
+      canvaskit.LTRBRect(
+        NW_canvasPaintPoint.x,
+        NW_canvasPaintPoint.y,
+        NW_canvasPaintPoint.x + rulerSize,
+        NW_canvasPaintPoint.y + rulerSize,
+      ),
     );
     canvas.drawPath(NW_maskPath, rulerBgPaint);
 
     // ruler tick line
     const rulerTickLinePath = new canvaskit.Path();
-    rulerTickLinePath.moveTo(NW_paintPoint.x, NW_paintPoint.y + rulerSize);
-    rulerTickLinePath.lineTo(SE_paintPoint.x, NW_paintPoint.y + rulerSize);
+    rulerTickLinePath.moveTo(NW_canvasPaintPoint.x, NW_canvasPaintPoint.y + rulerSize);
+    rulerTickLinePath.lineTo(SE_canvasPaintPoint.x, NW_canvasPaintPoint.y + rulerSize);
 
-    rulerTickLinePath.moveTo(NW_paintPoint.x + rulerSize, NW_paintPoint.y);
-    rulerTickLinePath.lineTo(NW_paintPoint.x + rulerSize, SE_paintPoint.y);
+    rulerTickLinePath.moveTo(NW_canvasPaintPoint.x + rulerSize, NW_canvasPaintPoint.y);
+    rulerTickLinePath.lineTo(NW_canvasPaintPoint.x + rulerSize, SE_canvasPaintPoint.y);
     canvas.drawPath(rulerTickLinePath, rulerTickLinePaint);
   }
 

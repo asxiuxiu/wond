@@ -55,6 +55,10 @@ export const sceneLengthToScreenLength = (length: number, viewSpaceMeta: ViewSpa
   return length * viewSpaceMeta.zoom;
 };
 
+export const sceneLengthToPaintLength = (length: number, viewSpaceMeta: ViewSpaceMeta): number => {
+  return length * viewSpaceMeta.zoom;
+};
+
 export const scenePathToPaintPath = (scenePath: Path, viewSpaceMeta: ViewSpaceMeta): Path => {
   const transform = compose([
     scale(viewSpaceMeta.zoom),
