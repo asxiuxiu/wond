@@ -37,9 +37,6 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
       return this._cachePath;
     }
     const anchorScenePos = this.getAnchorScenePos();
-    if (anchorScenePos.x < 0 || anchorScenePos.y < 0) {
-      return this._cachePath;
-    }
 
     const anchorPaintPos = sceneCoordsToPaintCoords(anchorScenePos, viewSpaceMeta);
     generateShapePath(this._cachePath, this.shape, anchorPaintPos);

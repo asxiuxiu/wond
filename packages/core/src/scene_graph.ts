@@ -1,13 +1,8 @@
-import { compareCoordinates, throttle } from '@wond/common';
-import { type Canvas, type Paint, type Surface } from 'canvaskit-wasm';
+import { compareCoordinates, mergeSegments, throttle } from '@wond/common';
+import { type Canvas, type Font, type Paint, type Surface } from 'canvaskit-wasm';
 import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
-import {
-  DEFAULT_OVERLAY_COLOR,
-  DEFAULT_SELECTION_RANGE_FILL_COLOR,
-  SCENE_GRID_LINE_COLOR,
-  ZERO_BOUNDING_AREA,
-} from './constants';
+import { CACHE_PAINT_COLLECTION, DEFAULT_FONT_NAME, ZERO_BOUNDING_AREA } from './constants';
 import { getCanvasKitContext } from './context';
 import { getEdgeVectors, rad2deg } from './geo';
 import { WondDocument } from './graphics/document';
@@ -21,7 +16,13 @@ import type {
   IWondPoint,
   WondGraphicDrawingContext,
 } from './interfaces';
-import { sceneCoordsToPaintCoords, scenePathToPaintPath, screenCoordsToSceneCoords } from './utils';
+import {
+  measureText,
+  sceneCoordsToPaintCoords,
+  scenePathToPaintPath,
+  screenCoordsToPaintCoords,
+  screenCoordsToSceneCoords,
+} from './utils';
 
 export class WondSceneGraph implements ISceneGraph {
   private readonly internalAPI: IInternalAPI;
@@ -43,6 +44,7 @@ export class WondSceneGraph implements ISceneGraph {
   private dirtyBoundingArea: IBoundingArea | null = null;
 
   private cachePaintCollection: Map<string, Paint> = new Map();
+  private cacheFontCollection: Map<string, Font> = new Map();
 
   constructor(internalAPI: IInternalAPI) {
     this.internalAPI = internalAPI;
@@ -61,88 +63,36 @@ export class WondSceneGraph implements ISceneGraph {
       throw new Error('Failed to create paint surface');
     }
     this.paintSurface = paintSurface;
+    this.initCacheFont();
     this.initCachePaint();
     this.rafDraw();
+  }
+
+  private initCacheFont() {
+    const { fontMgr, canvaskit } = getCanvasKitContext();
+    const rulerFont = new canvaskit.Font(fontMgr.matchFamilyStyle(DEFAULT_FONT_NAME, {}), 10);
+    this.cacheFontCollection.set('rulerFont', rulerFont);
+
+    const selectionLabelFont = new canvaskit.Font(fontMgr.matchFamilyStyle(DEFAULT_FONT_NAME, {}), 12);
+    this.cacheFontCollection.set('selectionLabelFont', selectionLabelFont);
   }
 
   private initCachePaint() {
     const { canvaskit } = getCanvasKitContext();
 
-    const overlayStrokePaint = new canvaskit.Paint();
-    overlayStrokePaint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_OVERLAY_COLOR.r / 255,
-        DEFAULT_OVERLAY_COLOR.g / 255,
-        DEFAULT_OVERLAY_COLOR.b / 255,
-        DEFAULT_OVERLAY_COLOR.a,
-      ),
-    );
-    overlayStrokePaint.setStyle(canvaskit.PaintStyle.Stroke);
-    overlayStrokePaint.setStrokeWidth(1);
-    overlayStrokePaint.setAntiAlias(true);
+    Object.entries(CACHE_PAINT_COLLECTION).forEach(([key, value]) => {
+      const paint = new canvaskit.Paint();
 
-    this.cachePaintCollection.set('overlayStrokePaint', overlayStrokePaint);
-
-    const selectionRangeOutlinePaint = new canvaskit.Paint();
-    selectionRangeOutlinePaint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_OVERLAY_COLOR.r / 255,
-        DEFAULT_OVERLAY_COLOR.g / 255,
-        DEFAULT_OVERLAY_COLOR.b / 255,
-        DEFAULT_OVERLAY_COLOR.a,
-      ),
-    );
-    selectionRangeOutlinePaint.setStyle(canvaskit.PaintStyle.Stroke);
-    selectionRangeOutlinePaint.setStrokeWidth(1);
-    selectionRangeOutlinePaint.setAntiAlias(false);
-    this.cachePaintCollection.set('selectionRangeOutlinePaint', selectionRangeOutlinePaint);
-
-    const selectionRangeFillPaint = new canvaskit.Paint();
-    selectionRangeFillPaint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_SELECTION_RANGE_FILL_COLOR.r / 255,
-        DEFAULT_SELECTION_RANGE_FILL_COLOR.g / 255,
-        DEFAULT_SELECTION_RANGE_FILL_COLOR.b / 255,
-        DEFAULT_SELECTION_RANGE_FILL_COLOR.a,
-      ),
-    );
-    selectionRangeFillPaint.setStyle(canvaskit.PaintStyle.Fill);
-    selectionRangeFillPaint.setAntiAlias(false);
-    this.cachePaintCollection.set('selectionRangeFillPaint', selectionRangeFillPaint);
-
-    const controlPointOutlinePaint = new canvaskit.Paint();
-    controlPointOutlinePaint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_OVERLAY_COLOR.r / 255,
-        DEFAULT_OVERLAY_COLOR.g / 255,
-        DEFAULT_OVERLAY_COLOR.b / 255,
-        DEFAULT_OVERLAY_COLOR.a,
-      ),
-    );
-    controlPointOutlinePaint.setStyle(canvaskit.PaintStyle.Stroke);
-    controlPointOutlinePaint.setStrokeWidth(2);
-    controlPointOutlinePaint.setAntiAlias(true);
-    this.cachePaintCollection.set('controlPointOutlinePaint', controlPointOutlinePaint);
-
-    const controlPointFillPaint = new canvaskit.Paint();
-    controlPointFillPaint.setColor(canvaskit.Color4f(1, 1, 1, 1));
-    controlPointFillPaint.setStyle(canvaskit.PaintStyle.Fill);
-    controlPointFillPaint.setAntiAlias(true);
-    this.cachePaintCollection.set('controlPointFillPaint', controlPointFillPaint);
-
-    const sceneGridLinesPaint = new canvaskit.Paint();
-    sceneGridLinesPaint.setColor(
-      canvaskit.Color4f(
-        SCENE_GRID_LINE_COLOR.r / 255,
-        SCENE_GRID_LINE_COLOR.g / 255,
-        SCENE_GRID_LINE_COLOR.b / 255,
-        SCENE_GRID_LINE_COLOR.a,
-      ),
-    );
-    sceneGridLinesPaint.setStyle(canvaskit.PaintStyle.Stroke);
-    sceneGridLinesPaint.setStrokeWidth(1);
-    sceneGridLinesPaint.setAntiAlias(true);
-    this.cachePaintCollection.set('sceneGridLinesPaint', sceneGridLinesPaint);
+      if (value.type === 'stroke') {
+        paint.setStyle(canvaskit.PaintStyle.Stroke);
+        paint.setStrokeWidth(value.strokeWidth || 1);
+      } else if (value.type === 'fill') {
+        paint.setStyle(canvaskit.PaintStyle.Fill);
+      }
+      paint.setAntiAlias(true);
+      paint.setColor(canvaskit.Color4f(value.color.r / 255, value.color.g / 255, value.color.b / 255, value.color.a));
+      this.cachePaintCollection.set(key, paint);
+    });
   }
 
   public getRootNode(): IGraphics {
@@ -583,24 +533,16 @@ export class WondSceneGraph implements ISceneGraph {
       perpVector.y = -perpVector.y;
     }
 
-    const ParagraphStyle = new canvaskit.ParagraphStyle(
-      new canvaskit.ParagraphStyle({
-        textStyle: {
-          color: canvaskit.WHITE,
-          fontFamilies: ['Roboto'],
-          fontSize: 12,
-        },
-        textAlign: canvaskit.TextAlign.Left,
-      }),
-    );
+    const selectionLabelFont = this.cacheFontCollection.get('selectionLabelFont');
+    const selectionLabelTextPaint = this.cachePaintCollection.get('selectionLabelTextPaint');
+    if (!selectionLabelFont || !selectionLabelTextPaint) {
+      return;
+    }
+    const textMetrics = measureText(sizeText, selectionLabelFont, selectionLabelTextPaint);
 
-    const builder = canvaskit.ParagraphBuilder.Make(ParagraphStyle, fontMgr);
-    builder.addText(sizeText);
-    const paragraph = builder.build();
-    paragraph.layout(150);
-
-    const textWidth = paragraph.getMaxIntrinsicWidth();
-    const textHeight = paragraph.getHeight();
+    const textWidth = textMetrics.width;
+    const textHeight = textMetrics.height;
+    const textBaseline = textMetrics.baseline;
 
     canvas.save();
     const textOffset = 10;
@@ -613,32 +555,30 @@ export class WondSceneGraph implements ISceneGraph {
     canvas.translate(labelCenter.x, labelCenter.y);
     canvas.rotate(rad2deg(angle), 0, 0);
 
-    // draw the paragraph bg rect
-    const fillPaint = new canvaskit.Paint();
-    fillPaint.setColor(
-      canvaskit.Color4f(
-        DEFAULT_OVERLAY_COLOR.r / 255,
-        DEFAULT_OVERLAY_COLOR.g / 255,
-        DEFAULT_OVERLAY_COLOR.b / 255,
-        DEFAULT_OVERLAY_COLOR.a,
-      ),
-    );
-    fillPaint.setStyle(canvaskit.PaintStyle.Fill);
-    fillPaint.setAntiAlias(true);
+    // draw the size text label
+    const selectionLabelBgPaint = cachePaintCollection.get('selectionLabelBgPaint');
+    if (!selectionLabelBgPaint) {
+      return;
+    }
     const paragraphBgRect = canvaskit.RRectXY(
       canvaskit.LTRBRect(
         -textWidth / 2 - textPadding,
-        -textPadding,
+        -textHeight / 2 - textPadding,
         textWidth / 2 + textPadding,
-        textHeight + textPadding,
+        textHeight / 2 + textPadding,
       ),
       3,
       3,
     );
-    canvas.drawRRect(paragraphBgRect, fillPaint);
+    canvas.drawRRect(paragraphBgRect, selectionLabelBgPaint);
 
-    // draw size paragraph
-    canvas.drawParagraph(paragraph, -textWidth / 2, 0);
+    canvas.drawText(
+      sizeText,
+      -textWidth / 2,
+      textBaseline - textHeight / 2,
+      selectionLabelTextPaint,
+      selectionLabelFont,
+    );
     canvas.restore();
   }
 
@@ -673,6 +613,144 @@ export class WondSceneGraph implements ISceneGraph {
       canvas.drawPath(anchorPath, controlPointOutlinePaint);
       canvas.drawPath(anchorPath, controlPointFillPaint);
     }
+  }
+
+  private drawRuler(context: WondGraphicDrawingContext) {
+    if (!this.internalAPI.getSettings().showRuler) {
+      return;
+    }
+
+    const { canvas, cachePaintCollection, viewSpaceMeta } = context;
+    const { canvaskit } = getCanvasKitContext();
+    const rulerStep = this.internalAPI.getRulerManager().getRulerStep();
+    const rulerSize = this.internalAPI.getRulerManager().getRulerSize();
+    const rulerBgPaint = cachePaintCollection.get('rulerBgPaint');
+    const rulerTextPaint = cachePaintCollection.get('rulerTextPaint');
+    const rulerTickPaint = cachePaintCollection.get('rulerTickPaint');
+    const rulerFont = this.cacheFontCollection.get('rulerFont');
+    const rulerTickLinePaint = cachePaintCollection.get('rulerTickLinePaint');
+    const rulerSelectionBgPaint = cachePaintCollection.get('rulerSelectionBgPaint');
+    const rulerSelectionTextPaint = cachePaintCollection.get('rulerSelectionTextPaint');
+    if (
+      !rulerBgPaint ||
+      !rulerTextPaint ||
+      !rulerFont ||
+      !rulerTickPaint ||
+      !rulerTickLinePaint ||
+      !rulerSelectionBgPaint ||
+      !rulerSelectionTextPaint
+    ) {
+      return;
+    }
+
+    const { left, top, right, bottom } = viewSpaceMeta.canvasBoundingBox;
+    const NW_paintPoint = screenCoordsToPaintCoords({ x: left, y: top }, viewSpaceMeta);
+    const SE_paintPoint = screenCoordsToPaintCoords({ x: right, y: bottom }, viewSpaceMeta);
+    // draw the ruler bg
+    const rulerBgPath = new canvaskit.Path();
+    rulerBgPath.addRect(
+      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, NW_paintPoint.x + rulerSize, SE_paintPoint.y),
+    );
+    rulerBgPath.addRect(
+      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, SE_paintPoint.x, NW_paintPoint.y + rulerSize),
+    );
+    canvas.drawPath(rulerBgPath, rulerBgPaint);
+
+    // selection effect in ruler.
+    const horizontalSegments: Array<[number, number]> = [];
+    const verticalSegments: Array<[number, number]> = [];
+    const selectedNodes = Array.from(this.selectedNodeIds)
+      .map((id) => this.getNodeById(id))
+      .filter((node) => node !== undefined);
+    if (selectedNodes.length !== 0) {
+      selectedNodes.forEach((node) => {
+        const boundingArea = node.getBoundingArea();
+        const NW_PaintPoint = sceneCoordsToPaintCoords({ x: boundingArea.left, y: boundingArea.top }, viewSpaceMeta);
+        const SE_PaintPoint = sceneCoordsToPaintCoords(
+          { x: boundingArea.right, y: boundingArea.bottom },
+          viewSpaceMeta,
+        );
+        horizontalSegments.push([NW_PaintPoint.x, SE_PaintPoint.x]);
+        verticalSegments.push([NW_PaintPoint.y, SE_PaintPoint.y]);
+      });
+
+      mergeSegments(horizontalSegments);
+      mergeSegments(verticalSegments);
+    }
+
+    if (horizontalSegments.length > 0 || verticalSegments.length > 0) {
+      const rulerSelectionBgPath = new canvaskit.Path();
+      for (const seg of horizontalSegments) {
+        rulerSelectionBgPath.addRect(canvaskit.LTRBRect(seg[0], NW_paintPoint.y, seg[1], NW_paintPoint.y + rulerSize));
+      }
+      for (const seg of verticalSegments) {
+        rulerSelectionBgPath.addRect(canvaskit.LTRBRect(NW_paintPoint.x, seg[0], NW_paintPoint.x + rulerSize, seg[1]));
+      }
+      canvas.drawPath(rulerSelectionBgPath, rulerSelectionBgPaint);
+    }
+
+    const NW_scene_point = screenCoordsToSceneCoords({ x: left, y: top }, viewSpaceMeta);
+    const SE_scene_point = screenCoordsToSceneCoords({ x: right, y: bottom }, viewSpaceMeta);
+
+    const tickLength = 5;
+    const tickTextOffset = 10;
+
+    // horizontal ticks
+    let startX = Math.ceil(NW_scene_point.x / rulerStep) * rulerStep;
+    for (let x = startX; x < SE_scene_point.x + rulerStep; x += rulerStep) {
+      const paintPoint = sceneCoordsToPaintCoords({ x, y: NW_scene_point.y }, viewSpaceMeta);
+
+      const tickPath = new canvaskit.Path();
+      tickPath.moveTo(paintPoint.x, paintPoint.y + rulerSize);
+      tickPath.lineTo(paintPoint.x, paintPoint.y + rulerSize - tickLength);
+      canvas.drawPath(tickPath, rulerTickPaint);
+
+      const text = x.toString();
+      const textMetrics = measureText(text, rulerFont, rulerTextPaint);
+
+      const textX = paintPoint.x - textMetrics.width / 2;
+      const textY = paintPoint.y + rulerSize - tickTextOffset;
+      canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
+    }
+
+    // vertical ticks
+    let startY = Math.ceil(NW_scene_point.y / rulerStep) * rulerStep;
+    for (let y = startY; y < SE_scene_point.y + rulerStep; y += rulerStep) {
+      const paintPoint = sceneCoordsToPaintCoords({ x: NW_scene_point.x, y }, viewSpaceMeta);
+
+      const tickPath = new canvaskit.Path();
+      tickPath.moveTo(paintPoint.x + rulerSize, paintPoint.y);
+      tickPath.lineTo(paintPoint.x + rulerSize - tickLength, paintPoint.y);
+      canvas.drawPath(tickPath, rulerTickPaint);
+
+      canvas.save();
+
+      const text = y.toString();
+      const textMetrics = measureText(text, rulerFont, rulerTextPaint);
+
+      const textX = paintPoint.x + rulerSize - tickTextOffset;
+      const textY = paintPoint.y + textMetrics.width / 2;
+
+      canvas.rotate(-90, textX, textY);
+      canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
+      canvas.restore();
+    }
+
+    // N-W corner mask
+    const NW_maskPath = new canvaskit.Path();
+    NW_maskPath.addRect(
+      canvaskit.LTRBRect(NW_paintPoint.x, NW_paintPoint.y, NW_paintPoint.x + rulerSize, NW_paintPoint.y + rulerSize),
+    );
+    canvas.drawPath(NW_maskPath, rulerBgPaint);
+
+    // ruler tick line
+    const rulerTickLinePath = new canvaskit.Path();
+    rulerTickLinePath.moveTo(NW_paintPoint.x, NW_paintPoint.y + rulerSize);
+    rulerTickLinePath.lineTo(SE_paintPoint.x, NW_paintPoint.y + rulerSize);
+
+    rulerTickLinePath.moveTo(NW_paintPoint.x + rulerSize, NW_paintPoint.y);
+    rulerTickLinePath.lineTo(NW_paintPoint.x + rulerSize, SE_paintPoint.y);
+    canvas.drawPath(rulerTickLinePath, rulerTickLinePaint);
   }
 
   private drawSceneGridLines(context: WondGraphicDrawingContext) {
@@ -776,6 +854,7 @@ export class WondSceneGraph implements ISceneGraph {
     this.drawSelectionRange(context);
     this.drawSelections(context);
     this.drawControlPoints(context);
+    this.drawRuler(context);
   }
 
   private rafDraw() {

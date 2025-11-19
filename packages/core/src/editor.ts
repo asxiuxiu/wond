@@ -9,12 +9,16 @@ import { WondUpdateSelectionOperation } from './operations';
 import { WondKeybindingManager } from './keybinding_manager';
 import { WondCursorManager } from './cursor_manager';
 import { WondControlPointManager } from './control_point_manager';
-import type { IEditor, IGraphics, IInternalAPI, IEditorEvent, IEditorOptions } from './interfaces';
+import { WondRulerManager } from './ruler_manager';
+import type { IEditor, IGraphics, IInternalAPI, IEditorEvent, IEditorOptions, IEditorSettings } from './interfaces';
 
 const FACTORY_SYMBOL = Symbol('WondEditor.factory');
 
 export class WondEditor implements IEditor {
   #canvasRootElement: HTMLCanvasElement;
+  #settings: IEditorSettings = {
+    showRuler: true,
+  };
 
   #hostEventManager: WondHostEventManager;
   #sceneGraph: WondSceneGraph;
@@ -24,6 +28,7 @@ export class WondEditor implements IEditor {
   #keybindingManager: WondKeybindingManager;
   #cursorManager: WondCursorManager;
   #controlPointManager: WondControlPointManager;
+  #rulerManager: WondRulerManager;
 
   private readonly eventEmitter = new EventEmitter<IEditorEvent>();
 
@@ -44,6 +49,7 @@ export class WondEditor implements IEditor {
     this.#canvasRootElement = canvasElement;
 
     this.#internalAPI = {
+      getSettings: () => this.#settings,
       getHostEventManager: () => this.#hostEventManager,
       getSceneGraph: () => this.#sceneGraph,
       getCommandManager: () => this.#commandManager,
@@ -52,6 +58,7 @@ export class WondEditor implements IEditor {
       getCanvasRootElement: () => this.#canvasRootElement,
       getCursorManager: () => this.#cursorManager,
       getControlPointManager: () => this.#controlPointManager,
+      getRulerManager: () => this.#rulerManager,
       emitEvent: (event, ...args) => this.eventEmitter.emit(event, ...args),
       on: (event, callback) => this.eventEmitter.on(event, callback),
       off: (event, callback) => this.eventEmitter.off(event, callback),
@@ -65,6 +72,7 @@ export class WondEditor implements IEditor {
     this.#keybindingManager = new WondKeybindingManager(this.#internalAPI);
     this.#cursorManager = new WondCursorManager(this.#internalAPI);
     this.#controlPointManager = new WondControlPointManager(this.#internalAPI);
+    this.#rulerManager = new WondRulerManager(this.#internalAPI);
     this.bindHostEvents();
     this.bindKeybindings();
   }
@@ -92,10 +100,22 @@ export class WondEditor implements IEditor {
       key: { keyCode: 'KeyY', ctrlKey: true },
       action: () => this.#commandManager.redo(),
     });
+    this.#keybindingManager.registerKeybinding({
+      key: { keyCode: 'KeyR', shiftKey: true },
+      action: () => this.updateSettings('showRuler', !this.getSettings().showRuler),
+    });
   }
 
   static _createInstance(options: IEditorOptions): WondEditor {
     return new WondEditor(options, FACTORY_SYMBOL);
+  }
+
+  public getSettings(): Readonly<IEditorSettings> {
+    return this.#settings;
+  }
+
+  public updateSettings<T extends keyof IEditorSettings>(settingKey: T, value: IEditorSettings[T]) {
+    this.#settings[settingKey] = value;
   }
 
   public getLayerTree(): IGraphics {

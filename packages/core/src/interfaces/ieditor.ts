@@ -6,7 +6,13 @@ export interface IEditorOptions {
   container: HTMLDivElement;
 }
 
+export interface IEditorSettings {
+  showRuler: boolean;
+}
+
 export interface IEditor {
+  getSettings(): Readonly<IEditorSettings>;
+  updateSettings<T extends keyof IEditorSettings>(settingKey: T, value: IEditorSettings[T]): void;
   getLayerTree(): IGraphics;
   isNodeSelected(nodeId: string): boolean;
   isNodeHovered(nodeId: string): boolean;
