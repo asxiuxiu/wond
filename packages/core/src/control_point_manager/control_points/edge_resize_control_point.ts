@@ -208,6 +208,7 @@ export class EdgeResizeControlPoint extends ControlPointBase {
     const projection = vec.x * scaleDirectionUnit.x + vec.y * scaleDirectionUnit.y;
 
     const newScaleValue = projection / scaleDirectionLength;
+    const sign = newScaleValue / Math.abs(newScaleValue);
 
     const newScale = {
       x: Math.abs(scaleDirectionUnit.x * newScaleValue),
@@ -223,7 +224,7 @@ export class EdgeResizeControlPoint extends ControlPointBase {
     const newTransform = compose([
       this.originAttrs.transform,
       translate(fixedEdgeMiddlePointInLocalSpace.x, fixedEdgeMiddlePointInLocalSpace.y),
-      scale(newScale.x || 1, newScale.y || 1),
+      scale(newScale.x * sign || 1, newScale.y * sign || 1),
       translate(-fixedEdgeMiddlePointInLocalSpace.x, -fixedEdgeMiddlePointInLocalSpace.y),
     ]);
 
