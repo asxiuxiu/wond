@@ -15,7 +15,7 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
       visible: true,
       name: 'rootPage',
       transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-      backgroundColor: { r: 245, g: 245, b: 245, a: 1 },
+      backgroundColor: { r: 255, g: 255, b: 255, a: 1 },
       children: [],
       size: { x: -1, y: -1 },
       ...attrs,

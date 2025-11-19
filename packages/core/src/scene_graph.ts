@@ -2,7 +2,12 @@ import { compareCoordinates, throttle } from '@wond/common';
 import { type Canvas, type Paint, type Surface } from 'canvaskit-wasm';
 import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
-import { DEFAULT_OVERLAY_COLOR, DEFAULT_SELECTION_RANGE_FILL_COLOR, ZERO_BOUNDING_AREA } from './constants';
+import {
+  DEFAULT_OVERLAY_COLOR,
+  DEFAULT_SELECTION_RANGE_FILL_COLOR,
+  SCENE_GRID_LINE_COLOR,
+  ZERO_BOUNDING_AREA,
+} from './constants';
 import { getCanvasKitContext } from './context';
 import { getEdgeVectors, rad2deg } from './geo';
 import { WondDocument } from './graphics/document';
@@ -16,7 +21,7 @@ import type {
   IWondPoint,
   WondGraphicDrawingContext,
 } from './interfaces';
-import { sceneCoordsToPaintCoords, scenePathToPaintPath } from './utils';
+import { sceneCoordsToPaintCoords, scenePathToPaintPath, screenCoordsToSceneCoords } from './utils';
 
 export class WondSceneGraph implements ISceneGraph {
   private readonly internalAPI: IInternalAPI;
@@ -124,6 +129,20 @@ export class WondSceneGraph implements ISceneGraph {
     controlPointFillPaint.setStyle(canvaskit.PaintStyle.Fill);
     controlPointFillPaint.setAntiAlias(true);
     this.cachePaintCollection.set('controlPointFillPaint', controlPointFillPaint);
+
+    const sceneGridLinesPaint = new canvaskit.Paint();
+    sceneGridLinesPaint.setColor(
+      canvaskit.Color4f(
+        SCENE_GRID_LINE_COLOR.r / 255,
+        SCENE_GRID_LINE_COLOR.g / 255,
+        SCENE_GRID_LINE_COLOR.b / 255,
+        SCENE_GRID_LINE_COLOR.a,
+      ),
+    );
+    sceneGridLinesPaint.setStyle(canvaskit.PaintStyle.Stroke);
+    sceneGridLinesPaint.setStrokeWidth(1);
+    sceneGridLinesPaint.setAntiAlias(true);
+    this.cachePaintCollection.set('sceneGridLinesPaint', sceneGridLinesPaint);
   }
 
   public getRootNode(): IGraphics {
@@ -656,6 +675,45 @@ export class WondSceneGraph implements ISceneGraph {
     }
   }
 
+  private drawSceneGridLines(context: WondGraphicDrawingContext) {
+    const { canvas, cachePaintCollection, viewSpaceMeta } = context;
+    if (viewSpaceMeta.zoom < 8) {
+      return;
+    }
+    const { canvaskit } = getCanvasKitContext();
+    const sceneGridLinesPaint = cachePaintCollection.get('sceneGridLinesPaint');
+    if (!sceneGridLinesPaint) {
+      return;
+    }
+
+    const { left, top, right, bottom } = viewSpaceMeta.canvasBoundingBox;
+    const NW_scene_point = screenCoordsToSceneCoords({ x: left, y: top }, viewSpaceMeta);
+    const SE_scene_point = screenCoordsToSceneCoords({ x: right, y: bottom }, viewSpaceMeta);
+
+    const startX = Math.ceil(NW_scene_point.x);
+    const startY = Math.ceil(NW_scene_point.y);
+    const endX = Math.floor(SE_scene_point.x);
+    const endY = Math.floor(SE_scene_point.y);
+
+    const linePath = new canvaskit.Path();
+
+    for (let y = startY; y <= endY; y++) {
+      const startPaintPoint = sceneCoordsToPaintCoords({ x: NW_scene_point.x, y }, viewSpaceMeta);
+      const endPaintPoint = sceneCoordsToPaintCoords({ x: SE_scene_point.x, y }, viewSpaceMeta);
+      linePath.moveTo(startPaintPoint.x, startPaintPoint.y);
+      linePath.lineTo(endPaintPoint.x, endPaintPoint.y);
+    }
+
+    for (let x = startX; x <= endX; x++) {
+      const startPaintPoint = sceneCoordsToPaintCoords({ x, y: NW_scene_point.y }, viewSpaceMeta);
+      const endPaintPoint = sceneCoordsToPaintCoords({ x, y: SE_scene_point.y }, viewSpaceMeta);
+      linePath.moveTo(startPaintPoint.x, startPaintPoint.y);
+      linePath.lineTo(endPaintPoint.x, endPaintPoint.y);
+    }
+
+    canvas.drawPath(linePath, sceneGridLinesPaint);
+  }
+
   private drawHover(context: WondGraphicDrawingContext) {
     if (this.isSelectionMoveDragging) {
       return;
@@ -713,6 +771,7 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   private drawOverlayLayer(context: WondGraphicDrawingContext) {
+    this.drawSceneGridLines(context);
     this.drawHover(context);
     this.drawSelectionRange(context);
     this.drawSelections(context);

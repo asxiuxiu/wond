@@ -31,8 +31,8 @@ export class ToolDrawRect extends ToolBase {
   private getTargetRectProperty(startPoint: IWondPoint, endPoint: IWondPoint) {
     const newProperty = {
       size: {
-        x: Math.round(Math.abs(endPoint.x - startPoint.x)),
-        y: Math.round(Math.abs(endPoint.y - startPoint.y)),
+        x: Math.max(Math.round(Math.abs(endPoint.x - startPoint.x)), 1),
+        y: Math.max(Math.round(Math.abs(endPoint.y - startPoint.y)), 1),
       },
       transform: {
         a: 1,

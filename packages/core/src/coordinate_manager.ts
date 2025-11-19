@@ -11,6 +11,7 @@ export class WondCoordinateManager implements ICoordinateManager {
     sceneScrollY: 0,
     zoom: 1,
     dpr: 1,
+    canvasBoundingBox: new DOMRect(0, 0, 0, 0),
   };
 
   constructor(internalAPI: IInternalAPI) {
@@ -26,6 +27,7 @@ export class WondCoordinateManager implements ICoordinateManager {
     this.canvasElement.width = canvasWidth;
     this.canvasElement.height = canvasHeight;
 
+    this.viewSpaceMeta.canvasBoundingBox = boundingBox;
     this.viewSpaceMeta.viewportOffsetX = boundingBox.left;
     this.viewSpaceMeta.viewportOffsetY = boundingBox.top;
     this.viewSpaceMeta.dpr = windowDpr;

@@ -1,4 +1,4 @@
-import type { Canvas, CanvasKit, FontMgr, Paint } from 'canvaskit-wasm';
+import type { Canvas, Paint } from 'canvaskit-wasm';
 
 export interface IWondPoint {
   x: number;
@@ -24,6 +24,7 @@ export interface ViewSpaceMeta {
   sceneScrollY: number;
   zoom: number;
   dpr: number;
+  canvasBoundingBox: DOMRect;
 }
 
 export interface WondGraphicDrawingContext {
