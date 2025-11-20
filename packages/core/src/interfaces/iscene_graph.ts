@@ -7,7 +7,7 @@ export interface ISceneGraph {
   getRootNode(): IGraphics;
   isNodeSelected(nodeId: string): boolean;
   getSelectionsCopy(): Set<string>;
-  getSelectionsBoundingArea(): Readonly<IBoundingArea | null>;
+  isSelectionContainsPoint(scenePoint: IWondPoint): boolean;
   setIsSelectionMoveDragging(isSelectionMoveDragging: boolean): void;
   setSelectionRange(range: BBox | null): void;
   setHoverNode(nodeId: string | null): void;

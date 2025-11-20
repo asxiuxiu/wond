@@ -104,20 +104,20 @@ export class ToolMove extends ToolBase {
       return;
     }
 
-    const currentSelectionBoundingArea = internalAPI.getSceneGraph().getSelectionsBoundingArea();
+    const isPointInSelection = internalAPI.getSceneGraph().isSelectionContainsPoint(this.startPoint);
     const selectionNode = internalAPI.getSceneGraph().pickNodeAtPoint(this.startPoint);
     if (selectionNode) {
       this.isMovingSelection = true;
       internalAPI.getSceneGraph().setHoverNode(selectionNode.attrs.id);
 
-      if (!currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
+      if (isPointInSelection) {
         // if current selection bounding area does not contain the start point, update the selection to the selected node.
         this.getCommand(internalAPI).addOperations([
           new WondUpdateSelectionOperation(new Set([selectionNode.attrs.id])),
         ]);
       }
     } else {
-      if (currentSelectionBoundingArea?.containsPoint(this.startPoint)) {
+      if (isPointInSelection) {
         this.isMovingSelection = true;
       } else {
         // if no selection node is picked, check if the start point is in the current selection bounding area.

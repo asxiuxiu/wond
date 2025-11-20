@@ -112,7 +112,7 @@ export class WondSceneGraph implements ISceneGraph {
     return new Set(this.selectedNodeIds);
   }
 
-  public getSelectionsBoundingArea(): Readonly<IBoundingArea | null> {
+  private getSelectionsBoundingArea(): Readonly<IBoundingArea | null> {
     const selectedNodeIds = Array.from(this.selectedNodeIds);
     if (selectedNodeIds.length === 0) {
       return null;
@@ -129,6 +129,28 @@ export class WondSceneGraph implements ISceneGraph {
       }
       return acc;
     }, null);
+  }
+
+  public isSelectionContainsPoint(scenePoint: IWondPoint): boolean {
+    const selectedNodeIds = Array.from(this.selectedNodeIds);
+    if (selectedNodeIds.length === 0) {
+      return false;
+    }
+
+    if (selectedNodeIds.length > 1) {
+      const selectionsBoundingArea = this.getSelectionsBoundingArea();
+      if (selectionsBoundingArea) {
+        return selectionsBoundingArea.containsPoint(scenePoint);
+      }
+      return false;
+    } else {
+      const selectedNodeId = selectedNodeIds[0];
+      const selectedNode = this.getNodeById(selectedNodeId);
+      if (selectedNode) {
+        return selectedNode.containsPoint(scenePoint);
+      }
+      return false;
+    }
   }
 
   public setIsSelectionMoveDragging(isSelectionMoveDragging: boolean) {
