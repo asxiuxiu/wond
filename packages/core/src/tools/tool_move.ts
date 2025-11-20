@@ -110,7 +110,7 @@ export class ToolMove extends ToolBase {
       this.isMovingSelection = true;
       internalAPI.getSceneGraph().setHoverNode(selectionNode.attrs.id);
 
-      if (isPointInSelection) {
+      if (!isPointInSelection) {
         // if current selection bounding area does not contain the start point, update the selection to the selected node.
         this.getCommand(internalAPI).addOperations([
           new WondUpdateSelectionOperation(new Set([selectionNode.attrs.id])),
