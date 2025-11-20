@@ -73,7 +73,11 @@ export class CornerResizeControlPoint extends ControlPointBase {
   }
 
   public getCursor(): IWondCursor {
-    return { type: 'resize', degree: getControlPointBaseDegree(this.type) + this.getRefGraphicsRotateDeg() };
+    const { rotation, flipX, flipY } = this.getRefGraphicsRotateAndFlip();
+    return {
+      type: 'resize',
+      degree: getControlPointBaseDegree(this.type, { flipX, flipY }) + (flipX || flipY ? -1 : 1) * rotation,
+    };
   }
 
   public onDragStart(event: IMouseEvent, internalAPI: IInternalAPI): void {

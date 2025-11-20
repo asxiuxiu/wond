@@ -94,12 +94,17 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
     return false;
   }
 
-  protected getRefGraphicsRotateDeg() {
-    if (this.refGraphics.length === 0 || this.refGraphics.length > 1) return 0;
+  protected getRefGraphicsRotateAndFlip() {
+    if (this.refGraphics.length === 0 || this.refGraphics.length > 1)
+      return { rotation: 0, flipX: false, flipY: false };
     const graphics = this.refGraphics[0];
     const transform = graphics.attrs.transform;
     const decomposedTransform = decomposeTSR(transform);
-    return rad2deg(decomposedTransform.rotation.angle);
+    return {
+      rotation: rad2deg(decomposedTransform.rotation.angle),
+      flipX: decomposedTransform.scale.sx < 0,
+      flipY: decomposedTransform.scale.sy < 0,
+    };
   }
 
   protected getAnchorScenePos() {

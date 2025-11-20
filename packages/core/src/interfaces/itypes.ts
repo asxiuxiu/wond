@@ -38,3 +38,8 @@ export interface WondTextMetrics {
   height: number;
   baseline: number;
 }
+
+export interface ITransformFlips {
+  flipX: boolean;
+  flipY: boolean;
+}

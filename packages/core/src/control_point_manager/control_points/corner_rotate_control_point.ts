@@ -76,9 +76,14 @@ export class CornerRotateControlPoint extends ControlPointBase {
     if (this.refGraphics.length === 0) {
       return { type: 'rotation', degree: 0 };
     } else if (this.refGraphics.length === 1) {
-      return { type: 'rotation', degree: getControlPointBaseDegree(this.type) + this.getRefGraphicsRotateDeg() };
+      const { rotation, flipX, flipY } = this.getRefGraphicsRotateAndFlip();
+      const baseDegree = getControlPointBaseDegree(this.type, { flipX, flipY });
+      return { type: 'rotation', degree: baseDegree + (flipX || flipY ? -1 : 1) * rotation };
     } else {
-      return { type: 'rotation', degree: getControlPointBaseDegree(this.type) + this.draggingRotationAngle };
+      return {
+        type: 'rotation',
+        degree: getControlPointBaseDegree(this.type, { flipX: false, flipY: false }) + this.draggingRotationAngle,
+      };
     }
   }
 

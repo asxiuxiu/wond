@@ -1,6 +1,6 @@
 import type { Path } from 'canvaskit-wasm';
 import { getCanvasKitContext } from '../context';
-import { type IWondPoint, type WondControlPointShape, WondControlPointType } from '../interfaces';
+import { type ITransformFlips, type IWondPoint, type WondControlPointShape, WondControlPointType } from '../interfaces';
 
 export const getCornerControlPointNormalizedPos = (type: WondControlPointType): IWondPoint => {
   switch (type) {
@@ -74,23 +74,41 @@ export const getResizeControlPointFixedType = (type: WondControlPointType): Wond
   }
 };
 
-export const getControlPointBaseDegree = (type: WondControlPointType): number => {
+export const getControlPointBaseDegree = (type: WondControlPointType, flips: ITransformFlips): number => {
+  const { flipX, flipY } = flips;
+
+  // 基础角度映射（SVG 坐标系，y 轴向下）
+  let baseDegree: number;
   switch (type) {
     case WondControlPointType.NW_Resize:
     case WondControlPointType.NW_Rotate:
-      return -45;
+      baseDegree = -45;
+      break;
     case WondControlPointType.NE_Resize:
     case WondControlPointType.NE_Rotate:
-      return 45;
+      baseDegree = 45;
+      break;
     case WondControlPointType.SE_Resize:
     case WondControlPointType.SE_Rotate:
-      return 135;
+      baseDegree = 135;
+      break;
     case WondControlPointType.SW_Resize:
     case WondControlPointType.SW_Rotate:
-      return 225;
+      baseDegree = 225;
+      break;
     default:
       return 0;
   }
+
+  if (flipX && flipY) {
+    return 180 + baseDegree;
+  } else if (flipX) {
+    return -baseDegree;
+  } else if (flipY) {
+    return 180 - baseDegree;
+  }
+
+  return baseDegree;
 };
 
 export const CONTROL_POINT_RADIUS = 3;
