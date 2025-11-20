@@ -59,15 +59,6 @@ export class CornerRotateControlPoint extends ControlPointBase {
         anchorPaintPos.y + radius,
       ),
     );
-    this._cachePath.transform(
-      getMatrix3x3FromTransform(
-        compose([
-          translate(anchorPaintPos.x, anchorPaintPos.y),
-          { ...refGraphicsAttrs.transform, e: 0, f: 0 },
-          translate(-anchorPaintPos.x, -anchorPaintPos.y),
-        ]),
-      ),
-    );
 
     return this._cachePath.contains(point.x, point.y);
   }
