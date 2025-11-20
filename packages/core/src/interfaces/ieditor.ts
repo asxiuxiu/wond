@@ -1,5 +1,6 @@
 import type { IGraphics } from './igraphics';
 import type { IEditorEvent } from './iinternal_api';
+import type { ISetter } from './isetter';
 import type { WondToolType } from './itool';
 
 export interface IEditorOptions {
@@ -13,6 +14,7 @@ export interface IEditorSettings {
 export interface IEditor {
   getSettings(): Readonly<IEditorSettings>;
   updateSettings<T extends keyof IEditorSettings>(settingKey: T, value: IEditorSettings[T]): void;
+  getSetters(): ISetter[];
   getLayerTree(): IGraphics;
   isNodeSelected(nodeId: string): boolean;
   isNodeHovered(nodeId: string): boolean;

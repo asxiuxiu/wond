@@ -14,3 +14,5 @@ export * from './icontrol_point_manager';
 export * from './ieditor';
 export * from './iinternal_api';
 export * from './iruler_manager';
+export * from './isetter';
+export * from './isetter_manager';

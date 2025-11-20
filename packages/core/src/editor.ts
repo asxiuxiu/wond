@@ -1,3 +1,12 @@
+import type {
+  IEditor,
+  IGraphics,
+  IInternalAPI,
+  IEditorEvent,
+  IEditorOptions,
+  IEditorSettings,
+  ISetter,
+} from './interfaces';
 import { WondCoordinateManager } from './coordinate_manager';
 import { WondCommandManager } from './command_manager';
 import { WondHostEventManager } from './host_event_manager';
@@ -10,7 +19,7 @@ import { WondKeybindingManager } from './keybinding_manager';
 import { WondCursorManager } from './cursor_manager';
 import { WondControlPointManager } from './control_point_manager';
 import { WondRulerManager } from './ruler_manager';
-import type { IEditor, IGraphics, IInternalAPI, IEditorEvent, IEditorOptions, IEditorSettings } from './interfaces';
+import { WondSetterManager } from './setter_manager';
 
 const FACTORY_SYMBOL = Symbol('WondEditor.factory');
 
@@ -29,6 +38,7 @@ export class WondEditor implements IEditor {
   #cursorManager: WondCursorManager;
   #controlPointManager: WondControlPointManager;
   #rulerManager: WondRulerManager;
+  #setterManager: WondSetterManager;
 
   private readonly eventEmitter = new EventEmitter<IEditorEvent>();
 
@@ -73,6 +83,7 @@ export class WondEditor implements IEditor {
     this.#cursorManager = new WondCursorManager(this.#internalAPI);
     this.#controlPointManager = new WondControlPointManager(this.#internalAPI);
     this.#rulerManager = new WondRulerManager(this.#internalAPI);
+    this.#setterManager = new WondSetterManager(this.#internalAPI);
     this.bindHostEvents();
     this.bindKeybindings();
   }
@@ -166,6 +177,10 @@ export class WondEditor implements IEditor {
 
   public setHoverNode(nodeId: string | null) {
     this.#sceneGraph.setHoverNode(nodeId);
+  }
+
+  public getSetters(): ISetter[] {
+    return [];
   }
 
   public on(event: keyof IEditorEvent, callback: IEditorEvent[keyof IEditorEvent]) {
