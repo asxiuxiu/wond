@@ -1,4 +1,4 @@
-import { compareCoordinates, mergeSegments, throttle } from '@wond/common';
+import { compareCoordinates, getReduceRatioByDistanceFromSegment, mergeSegments, throttle } from '@wond/common';
 import { type Canvas, type Font, type Paint, type Surface } from 'canvaskit-wasm';
 import RBush, { type BBox } from 'rbush';
 import { applyToPoints } from 'transformation-matrix';
@@ -15,6 +15,7 @@ import type {
   IGraphicsAttrs,
   IWondPoint,
   WondGraphicDrawingContext,
+  RulerTextProperty,
 } from './interfaces';
 import {
   measureText,
@@ -94,6 +95,9 @@ export class WondSceneGraph implements ISceneGraph {
       paint.setColor(canvaskit.Color(value.color.r, value.color.g, value.color.b, value.color.a));
       this.cachePaintCollection.set(key, paint);
     });
+
+    const cacheAlphaLayerPaint = new canvaskit.Paint();
+    this.cachePaintCollection.set('alphaLayerPaint', cacheAlphaLayerPaint);
   }
 
   public getRootNode(): IGraphics {
@@ -633,6 +637,7 @@ export class WondSceneGraph implements ISceneGraph {
     const rulerTickLinePaint = cachePaintCollection.get('rulerTickLinePaint');
     const rulerSelectionBgPaint = cachePaintCollection.get('rulerSelectionBgPaint');
     const rulerSelectionTextPaint = cachePaintCollection.get('rulerSelectionTextPaint');
+    const cacheAlphaLayerPaint = cachePaintCollection.get('alphaLayerPaint');
     if (
       !rulerBgPaint ||
       !rulerTextPaint ||
@@ -640,7 +645,8 @@ export class WondSceneGraph implements ISceneGraph {
       !rulerTickPaint ||
       !rulerTickLinePaint ||
       !rulerSelectionBgPaint ||
-      !rulerSelectionTextPaint
+      !rulerSelectionTextPaint ||
+      !cacheAlphaLayerPaint
     ) {
       return;
     }
@@ -672,8 +678,8 @@ export class WondSceneGraph implements ISceneGraph {
     canvas.drawPath(rulerBgPath, rulerBgPaint);
 
     // selection effect in ruler.
-    const horizontalSegments: Array<[number, number]> = [];
-    const verticalSegments: Array<[number, number]> = [];
+    let horizontalSegments: Array<[number, number]> = [];
+    let verticalSegments: Array<[number, number]> = [];
     const selectedNodes = Array.from(this.selectedNodeIds)
       .map((id) => this.getNodeById(id))
       .filter((node) => node !== undefined);
@@ -684,14 +690,11 @@ export class WondSceneGraph implements ISceneGraph {
         verticalSegments.push([boundingArea.top, boundingArea.bottom]);
       });
 
-      mergeSegments(horizontalSegments);
-      mergeSegments(verticalSegments);
+      horizontalSegments = mergeSegments(horizontalSegments);
+      verticalSegments = mergeSegments(verticalSegments);
     }
 
-    const segPointTextPropertyMap = new Map<
-      number,
-      { text: string; paintCoords: number; width: number; height: number; baseline: number }
-    >();
+    const segPointTextPropertyMap = new Map<number, RulerTextProperty>();
 
     const addSegPointToMap = (segPoint: number, isHorizontal: boolean) => {
       const text = (+segPoint.toFixed(3)).toString();
@@ -724,7 +727,7 @@ export class WondSceneGraph implements ISceneGraph {
           canvaskit.LTRBRect(
             segStartProperty.paintCoords,
             NW_canvasPaintPoint.y,
-            segEndProperty.paintCoords,
+            Math.max(segEndProperty.paintCoords, segStartProperty.paintCoords + 1),
             NW_canvasPaintPoint.y + rulerSize,
           ),
         );
@@ -739,7 +742,7 @@ export class WondSceneGraph implements ISceneGraph {
             NW_canvasPaintPoint.x,
             segStartProperty.paintCoords,
             NW_canvasPaintPoint.x + rulerSize,
-            segEndProperty.paintCoords,
+            Math.max(segEndProperty.paintCoords, segStartProperty.paintCoords + 1),
           ),
         );
       }
@@ -749,74 +752,65 @@ export class WondSceneGraph implements ISceneGraph {
     const tickLength = 5;
     const tickTextOffset = 8;
     const selectionTextOffset = 4;
+    const selectionAndTickTextReduceBeginOffset = rulerPaintStep * 1.5;
+    const selectionAndTextReduceEndOffset = rulerPaintStep * 0.5;
+
+    const calculatePaintOpacityBySelectionSeg = (
+      tickCoords: number,
+      coordsSelectionSegments: Array<[number, number]>,
+      reduceBeginOffset: number,
+      reduceEndOffset: number,
+    ): number => {
+      let paintOpacity = 1;
+      for (const seg of coordsSelectionSegments) {
+        const startTextProperty = segPointTextPropertyMap.get(seg[0]);
+        if (startTextProperty) {
+          const startLeft = startTextProperty.paintCoords - startTextProperty.width - selectionTextOffset;
+          const startRight = startTextProperty.paintCoords;
+
+          paintOpacity = Math.min(
+            paintOpacity,
+            getReduceRatioByDistanceFromSegment(
+              tickCoords,
+              [startLeft, startRight],
+              reduceBeginOffset,
+              reduceEndOffset,
+            ),
+          );
+        }
+
+        const endTextProperty = segPointTextPropertyMap.get(seg[1]);
+        if (endTextProperty) {
+          const endLeft = endTextProperty.paintCoords;
+          const endRight = endTextProperty.paintCoords + endTextProperty.width + selectionTextOffset;
+
+          paintOpacity = Math.min(
+            paintOpacity,
+            getReduceRatioByDistanceFromSegment(tickCoords, [endLeft, endRight], reduceBeginOffset, reduceEndOffset),
+          );
+        }
+      }
+
+      paintOpacity = Math.min(paintOpacity, getReduceRatioByDistanceFromSegment(tickCoords, [0, 0], rulerPaintStep, 0));
+
+      return paintOpacity;
+    };
 
     // horizontal ticks
     let startX = Math.ceil(NW_canvasScenePoint.x / rulerStep) * rulerStep;
     for (let x = startX; x < SE_canvasScenePoint.x + rulerStep; x += rulerStep) {
       const paintPoint = sceneCoordsToPaintCoords({ x, y: NW_canvasScenePoint.y }, viewSpaceMeta);
 
-      let paintOpacity = 1;
-      for (const seg of horizontalSegments) {
-        const startTextProperty = segPointTextPropertyMap.get(seg[0]);
-        if (startTextProperty) {
-          const startLeft = startTextProperty.paintCoords - startTextProperty.width - selectionTextOffset;
-          const startRight = startTextProperty.paintCoords;
+      const paintOpacity = calculatePaintOpacityBySelectionSeg(
+        paintPoint.x,
+        horizontalSegments,
+        selectionAndTickTextReduceBeginOffset,
+        selectionAndTextReduceEndOffset,
+      );
 
-          if (paintPoint.x < startLeft && startLeft - paintPoint.x < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(startLeft - paintPoint.x - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.x > startRight && paintPoint.x - startRight < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(paintPoint.x - startRight - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.x >= startLeft && paintPoint.x <= startRight) {
-            paintOpacity = 0;
-          }
-        }
-
-        const endTextProperty = segPointTextPropertyMap.get(seg[1]);
-        if (endTextProperty) {
-          const endL = endTextProperty.paintCoords;
-          const endR = endTextProperty.paintCoords + endTextProperty.width + selectionTextOffset;
-          if (paintPoint.x < endL && endL - paintPoint.x < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(endL - paintPoint.x - rulerPaintStep * 0.5, 0) / (rulerPaintStep / 2),
-            );
-          } else if (paintPoint.x > endR && paintPoint.x - endR < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(paintPoint.x - endR - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.x >= endL && paintPoint.x <= endR) {
-            paintOpacity = 0;
-          }
-        }
-      }
-
-      const rulerTextPaintColor = canvaskit.getColorComponents(rulerTextPaint.getColor());
-      const rulerTickPaintColor = canvaskit.getColorComponents(rulerTickPaint.getColor());
       if (paintOpacity < 1) {
-        rulerTextPaint.setColor(
-          canvaskit.Color(
-            rulerTextPaintColor[0],
-            rulerTextPaintColor[1],
-            rulerTextPaintColor[2],
-            rulerTextPaintColor[3] * paintOpacity,
-          ),
-        );
-
-        rulerTickPaint.setColor(
-          canvaskit.Color(
-            rulerTickPaintColor[0],
-            rulerTickPaintColor[1],
-            rulerTickPaintColor[2],
-            rulerTickPaintColor[3] * paintOpacity,
-          ),
-        );
+        cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+        canvas.saveLayer(cacheAlphaLayerPaint);
       }
 
       const tickPath = new canvaskit.Path();
@@ -831,12 +825,10 @@ export class WondSceneGraph implements ISceneGraph {
       const textY = paintPoint.y + rulerSize - tickTextOffset;
 
       canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
-      rulerTextPaint.setColor(
-        canvaskit.Color(rulerTextPaintColor[0], rulerTextPaintColor[1], rulerTextPaintColor[2], rulerTextPaintColor[3]),
-      );
-      rulerTickPaint.setColor(
-        canvaskit.Color(rulerTickPaintColor[0], rulerTickPaintColor[1], rulerTickPaintColor[2], rulerTickPaintColor[3]),
-      );
+
+      if (paintOpacity < 1) {
+        canvas.restore();
+      }
     }
 
     // vertical ticks
@@ -844,67 +836,16 @@ export class WondSceneGraph implements ISceneGraph {
     for (let y = startY; y < SE_canvasScenePoint.y + rulerStep; y += rulerStep) {
       const paintPoint = sceneCoordsToPaintCoords({ x: NW_canvasScenePoint.x, y }, viewSpaceMeta);
 
-      let paintOpacity = 1;
-      for (const seg of verticalSegments) {
-        const startTextProperty = segPointTextPropertyMap.get(seg[0]);
-        if (startTextProperty) {
-          const startTop = startTextProperty.paintCoords - startTextProperty.width - selectionTextOffset;
-          const startBottom = startTextProperty.paintCoords;
+      const paintOpacity = calculatePaintOpacityBySelectionSeg(
+        paintPoint.y,
+        verticalSegments,
+        selectionAndTickTextReduceBeginOffset,
+        selectionAndTextReduceEndOffset,
+      );
 
-          if (paintPoint.y < startTop && startTop - paintPoint.y < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(startTop - paintPoint.y - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.y > startBottom && paintPoint.y - startBottom < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(paintPoint.y - startBottom - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.y >= startTop && paintPoint.y <= startBottom) {
-            paintOpacity = 0;
-          }
-        }
-
-        const endTextProperty = segPointTextPropertyMap.get(seg[1]);
-        if (endTextProperty) {
-          const endTop = endTextProperty.paintCoords;
-          const endBottom = endTextProperty.paintCoords + endTextProperty.width + selectionTextOffset;
-          if (paintPoint.y < endTop && endTop - paintPoint.y < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(endTop - paintPoint.y - rulerPaintStep * 0.5, 0) / (rulerPaintStep / 2),
-            );
-          } else if (paintPoint.y > endBottom && paintPoint.y - endBottom < rulerPaintStep * 1.5) {
-            paintOpacity = Math.min(
-              paintOpacity,
-              Math.max(paintPoint.y - endBottom - rulerPaintStep * 0.5, 0) / rulerPaintStep,
-            );
-          } else if (paintPoint.y >= endTop && paintPoint.y <= endBottom) {
-            paintOpacity = 0;
-          }
-        }
-      }
-      const rulerTextPaintColor = canvaskit.getColorComponents(rulerTextPaint.getColor());
-      const rulerTickPaintColor = canvaskit.getColorComponents(rulerTickPaint.getColor());
       if (paintOpacity < 1) {
-        rulerTextPaint.setColor(
-          canvaskit.Color(
-            rulerTextPaintColor[0],
-            rulerTextPaintColor[1],
-            rulerTextPaintColor[2],
-            rulerTextPaintColor[3] * paintOpacity,
-          ),
-        );
-
-        rulerTickPaint.setColor(
-          canvaskit.Color(
-            rulerTickPaintColor[0],
-            rulerTickPaintColor[1],
-            rulerTickPaintColor[2],
-            rulerTickPaintColor[3] * paintOpacity,
-          ),
-        );
+        cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+        canvas.saveLayer(cacheAlphaLayerPaint);
       }
 
       const tickPath = new canvaskit.Path();
@@ -924,63 +865,111 @@ export class WondSceneGraph implements ISceneGraph {
       canvas.drawText(text, textX, textY, rulerTextPaint, rulerFont);
       canvas.restore();
 
-      rulerTextPaint.setColor(
-        canvaskit.Color(rulerTextPaintColor[0], rulerTextPaintColor[1], rulerTextPaintColor[2], rulerTextPaintColor[3]),
-      );
-      rulerTickPaint.setColor(
-        canvaskit.Color(rulerTickPaintColor[0], rulerTickPaintColor[1], rulerTickPaintColor[2], rulerTickPaintColor[3]),
-      );
+      if (paintOpacity < 1) {
+        canvas.restore();
+      }
     }
 
     // draw selection tick text
-    for (const seg of horizontalSegments) {
+    const selectionSelfReduceBeginOffset = rulerPaintStep;
+    const selectionSelfReduceEndOffset = rulerPaintStep;
+    for (let i = 0; i < horizontalSegments.length; i++) {
+      const seg = horizontalSegments[i];
       const startTextProperty = segPointTextPropertyMap.get(seg[0]);
       if (startTextProperty) {
         const { text, paintCoords, ...textMetrics } = startTextProperty;
-        canvas.drawText(
-          text,
-          paintCoords - textMetrics.width - selectionTextOffset,
-          NW_canvasPaintPoint.y + rulerSize - tickTextOffset,
-          rulerSelectionTextPaint,
-          rulerFont,
+        const textX = paintCoords - textMetrics.width - selectionTextOffset;
+        const textY = NW_canvasPaintPoint.y + rulerSize - tickTextOffset;
+        const paintOpacity = calculatePaintOpacityBySelectionSeg(
+          textX,
+          horizontalSegments.slice(0, i),
+          selectionSelfReduceBeginOffset,
+          selectionSelfReduceEndOffset,
         );
+        if (paintOpacity < 1) {
+          cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+          canvas.saveLayer(cacheAlphaLayerPaint);
+        }
+
+        canvas.drawText(text, textX, textY, rulerSelectionTextPaint, rulerFont);
+
+        if (paintOpacity < 1) {
+          canvas.restore();
+        }
       }
 
       const endTextProperty = segPointTextPropertyMap.get(seg[1]);
       if (endTextProperty) {
         const { text, paintCoords } = endTextProperty;
-        canvas.drawText(
-          text,
-          paintCoords + selectionTextOffset,
-          NW_canvasPaintPoint.y + rulerSize - tickTextOffset,
-          rulerSelectionTextPaint,
-          rulerFont,
+        const textX = paintCoords + selectionTextOffset;
+        const textY = NW_canvasPaintPoint.y + rulerSize - tickTextOffset;
+        const paintOpacity = calculatePaintOpacityBySelectionSeg(
+          textX,
+          horizontalSegments.slice(0, i),
+          selectionSelfReduceBeginOffset,
+          selectionSelfReduceEndOffset,
         );
+        if (paintOpacity < 1) {
+          cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+          canvas.saveLayer(cacheAlphaLayerPaint);
+        }
+        canvas.drawText(text, textX, textY, rulerSelectionTextPaint, rulerFont);
+        if (paintOpacity < 1) {
+          canvas.restore();
+        }
       }
     }
 
-    for (const seg of verticalSegments) {
+    for (let i = 0; i < verticalSegments.length; i++) {
+      const seg = verticalSegments[i];
       const startTextProperty = segPointTextPropertyMap.get(seg[0]);
       if (startTextProperty) {
         const { text, paintCoords } = startTextProperty;
-
-        canvas.save();
         const startTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
         const startTextY = paintCoords - selectionTextOffset;
+        const paintOpacity = calculatePaintOpacityBySelectionSeg(
+          startTextY,
+          verticalSegments.slice(0, i),
+          selectionSelfReduceBeginOffset,
+          selectionSelfReduceEndOffset,
+        );
+
+        canvas.save();
         canvas.rotate(-90, startTextX, startTextY);
+        if (paintOpacity < 1) {
+          cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+          canvas.saveLayer(cacheAlphaLayerPaint);
+        }
+
         canvas.drawText(text, startTextX, startTextY, rulerSelectionTextPaint, rulerFont);
+        if (paintOpacity < 1) {
+          canvas.restore();
+        }
         canvas.restore();
       }
 
       const endTextProperty = segPointTextPropertyMap.get(seg[1]);
       if (endTextProperty) {
         const { text, paintCoords, ...textMetrics } = endTextProperty;
-
-        canvas.save();
         const endTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
         const endTextY = paintCoords + textMetrics.width + selectionTextOffset;
+        const paintOpacity = calculatePaintOpacityBySelectionSeg(
+          endTextY,
+          verticalSegments.slice(0, i),
+          selectionSelfReduceBeginOffset,
+          selectionSelfReduceEndOffset,
+        );
+
+        canvas.save();
         canvas.rotate(-90, endTextX, endTextY);
+        if (paintOpacity < 1) {
+          cacheAlphaLayerPaint.setAlphaf(paintOpacity);
+          canvas.saveLayer(cacheAlphaLayerPaint);
+        }
         canvas.drawText(text, endTextX, endTextY, rulerSelectionTextPaint, rulerFont);
+        if (paintOpacity < 1) {
+          canvas.restore();
+        }
         canvas.restore();
       }
     }

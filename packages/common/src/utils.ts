@@ -40,3 +40,42 @@ export const mergeSegments = (segments: Array<[number, number]>): Array<[number,
 
   return newSegments;
 };
+
+export const getReduceRatioByDistanceFromSegment = (
+  tickCoords: number,
+  seg: [number, number],
+  reduceBeginOffset: number,
+  reduceEndOffset: number,
+): number => {
+  let ratio = 1;
+
+  const [segStart, segEnd] = seg;
+  if (seg[0] > seg[1]) {
+    return ratio;
+  }
+
+  if (reduceBeginOffset < 0 || reduceEndOffset < 0 || reduceBeginOffset < reduceEndOffset) {
+    return ratio;
+  }
+
+  if (reduceBeginOffset === reduceEndOffset) {
+    if (tickCoords >= segStart - reduceBeginOffset && tickCoords <= segEnd + reduceBeginOffset) {
+      return 0;
+    } else {
+      return 1;
+    }
+  }
+
+  if (tickCoords < segStart && segStart - tickCoords < reduceBeginOffset) {
+    ratio = Math.min(
+      ratio,
+      Math.max(segStart - tickCoords - reduceEndOffset, 0) / (reduceBeginOffset - reduceEndOffset),
+    );
+  } else if (tickCoords > segEnd && tickCoords - segEnd < reduceBeginOffset) {
+    ratio = Math.min(ratio, Math.max(tickCoords - segEnd - reduceEndOffset, 0) / (reduceBeginOffset - reduceEndOffset));
+  } else if (tickCoords >= segStart && tickCoords <= segEnd) {
+    ratio = 0;
+  }
+
+  return ratio;
+};

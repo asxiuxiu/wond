@@ -1,7 +1,7 @@
 import type { BBox } from 'rbush';
 import type { IGraphics, IGraphicsAttrs } from './igraphics';
 import type { IBoundingArea } from './ibounding_area';
-import type { IWondPoint } from './itypes';
+import type { IWondPoint, WondTextMetrics } from './itypes';
 
 export interface ISceneGraph {
   getRootNode(): IGraphics;
@@ -23,4 +23,9 @@ export interface ISceneGraph {
   ): void;
   addNodeByCoordinates(coordinates: number[], newNode: IGraphics): void;
   removeNodeByCoordinates(childCoordinates: number[]): void;
+}
+
+export interface RulerTextProperty extends WondTextMetrics {
+  text: string;
+  paintCoords: number;
 }

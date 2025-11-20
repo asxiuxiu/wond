@@ -32,3 +32,9 @@ export interface WondGraphicDrawingContext {
   viewSpaceMeta: ViewSpaceMeta;
   cachePaintCollection: Map<string, Paint>;
 }
+
+export interface WondTextMetrics {
+  width: number;
+  height: number;
+  baseline: number;
+}
