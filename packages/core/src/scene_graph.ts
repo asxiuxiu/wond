@@ -946,11 +946,11 @@ export class WondSceneGraph implements ISceneGraph {
       const seg = verticalSegments[i];
       const startTextProperty = segPointTextPropertyMap.get(seg[0]);
       if (startTextProperty) {
-        const { text, paintCoords } = startTextProperty;
+        const { text, paintCoords, ...textMetrics } = startTextProperty;
         const startTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
         const startTextY = paintCoords - selectionTextOffset;
         const paintOpacity = calculatePaintOpacityBySelectionSeg(
-          startTextY,
+          startTextY - textMetrics.width,
           verticalSegments.slice(0, i),
           selectionSelfReduceBeginOffset,
           selectionSelfReduceEndOffset,
@@ -976,7 +976,7 @@ export class WondSceneGraph implements ISceneGraph {
         const endTextX = NW_canvasPaintPoint.x + rulerSize - tickTextOffset;
         const endTextY = paintCoords + textMetrics.width + selectionTextOffset;
         const paintOpacity = calculatePaintOpacityBySelectionSeg(
-          endTextY,
+          endTextY - textMetrics.width,
           verticalSegments.slice(0, i),
           selectionSelfReduceBeginOffset,
           selectionSelfReduceEndOffset,
