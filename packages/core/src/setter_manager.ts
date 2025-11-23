@@ -6,7 +6,7 @@ import type {
   ISetterInternal,
   ISetterManager,
 } from './interfaces';
-import { PositionSetter } from './setters';
+import { LayoutSetter, PositionSetter } from './setters';
 
 export class WondSetterManager implements ISetterManager {
   private setterCollection: ISetterCollection | null = null;
@@ -46,6 +46,7 @@ export class WondSetterManager implements ISetterManager {
     const setters: ISetter[] = [];
 
     setters.push(new PositionSetter(this.internalAPI, selectedNodes));
+    setters.push(new LayoutSetter(this.internalAPI, selectedNodes));
 
     this.setterCollection = {
       name: name,

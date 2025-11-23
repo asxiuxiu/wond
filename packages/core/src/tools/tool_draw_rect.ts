@@ -67,6 +67,7 @@ export class ToolDrawRect extends ToolBase {
         name: `Rectangle ${ToolDrawRect.getNewKey()}`,
         visible: true,
         locked: false,
+        isAspectRatioLocked: false,
         ...newProperty,
       });
 

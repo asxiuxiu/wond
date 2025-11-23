@@ -20,6 +20,7 @@ export interface IGraphicsAttrs {
   transform: Matrix;
   visible: boolean;
   locked: boolean;
+  isAspectRatioLocked: boolean;
   size: { x: number; y: number };
   children?: IGraphics[];
 }

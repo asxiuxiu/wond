@@ -1,0 +1,33 @@
+.wond-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-secondary);
+  border: none;
+  outline: none;
+  height: 100%;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 5px;
+
+  &:hover {
+    background-color: var(--color-bg-tertiary);
+    transition: background-color 0.1s ease-in-out;
+  }
+
+  &.active {
+    color: var(--color-icon-brand);
+    background-color: var(--color-bg-selected);
+  }
+
+  .icon-button-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}

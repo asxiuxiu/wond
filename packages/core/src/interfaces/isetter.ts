@@ -25,6 +25,8 @@ type PropertyAccessors<T> = {
   mixed: ReadonlySet<keyof T>;
 };
 
+// position setter
+
 export interface IPositionProperty {
   x: number;
   y: number;
@@ -36,3 +38,11 @@ export interface IPositionSetter extends ISetter, PropertyAccessors<IPositionPro
   flipHorizontal(): void;
   flipVertical(): void;
 }
+
+export interface ILayoutProperty {
+  width: number;
+  height: number;
+  isAspectRatioLocked: boolean;
+}
+
+export interface ILayoutSetter extends ISetter, PropertyAccessors<ILayoutProperty> {}
