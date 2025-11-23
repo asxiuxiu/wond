@@ -2,8 +2,67 @@
 
 .wond-right-panel {
   position: relative;
-  width: 285px;
+  width: 379px;
   height: 100%;
   background-color: $panel-color;
   border-left: 1px solid $panel-border-color;
+
+  .tabs-title-row {
+    box-sizing: border-box;
+    display: flex;
+    width: 100%;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 40px;
+    padding-left: 8px;
+    border-bottom: 1px solid var(--color-border);
+
+    .tabs-title-content {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tab-title-button {
+      display: grid;
+      height: 24px;
+      justify-content: center;
+      align-items: center;
+      height: 1.5rem;
+      padding: 0 0.5rem;
+      text-wrap: nowrap;
+      border: none;
+      outline: none;
+      border-radius: 0.3125rem;
+      color: #00000080;
+      background-color: #fff;
+      font-family: $default-font-family;
+      user-select: none;
+      font-size: 0.6875rem;
+      font-weight: 450;
+      line-height: 1rem;
+
+      span.tab-title-strong-hidden {
+        opacity: 0;
+        font-weight: 550;
+      }
+
+      span {
+        grid-row: 1;
+        grid-column: 1;
+        word-break: keep-all;
+      }
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      &.active {
+        color: #000000e6;
+        background-color: #f5f5f5;
+        font-weight: 550;
+      }
+    }
+  }
 }

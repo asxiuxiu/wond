@@ -1,0 +1,47 @@
+.wond-input-property-accessor {
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  border-radius: 0.3125rem;
+  background: var(--color-bg-secondary);
+  height: 1.5rem;
+  display: flex;
+  flex: 1;
+  align-items: center;
+
+  &:has(input:focus) {
+    outline: 1px solid #0d99ff;
+  }
+
+  .accessor-prefix {
+    // cursor: ew-resize;
+    color: #00000080;
+    width: var(--spacer-4);
+    height: var(--spacer-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 var(--spacer-4);
+    line-height: var(--spacer-4);
+    user-select: none;
+  }
+
+  .accessor-input {
+    flex: 1;
+    outline: none;
+    outline-offset: -1px;
+    background-color: transparent;
+    height: 100%;
+    box-sizing: border-box;
+    border: none;
+    cursor: default;
+    padding-right: 0.5rem;
+    text-overflow: ellipsis;
+    color: var(--color-text);
+    border-radius: 0.3125rem;
+    line-height: var(--text-body-medium-line-height);
+    font-family: var(--text-body-medium-font-family);
+    font-size: var(--text-body-medium-font-size);
+    font-weight: var(--text-body-medium-font-weight);
+    letter-spacing: var(--text-body-medium-letter-spacing);
+  }
+}

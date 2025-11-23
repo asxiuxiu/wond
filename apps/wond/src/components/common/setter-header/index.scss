@@ -1,0 +1,11 @@
+.wond-setter-header {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding-left: var(--spacer-3);
+  padding-right: var(--spacer-2);
+  font-weight: var(--font-weight-strong);
+  height: 40px;
+  font-family: var(--default-font-family);
+}

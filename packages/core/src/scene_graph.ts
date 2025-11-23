@@ -18,6 +18,7 @@ import type {
   RulerTextProperty,
 } from './interfaces';
 import {
+  getGraphicsBoundingArea,
   measureText,
   sceneCoordsToPaintCoords,
   sceneLengthToPaintLength,
@@ -112,25 +113,6 @@ export class WondSceneGraph implements ISceneGraph {
     return new Set(this.selectedNodeIds);
   }
 
-  private getSelectionsBoundingArea(): Readonly<IBoundingArea | null> {
-    const selectedNodeIds = Array.from(this.selectedNodeIds);
-    if (selectedNodeIds.length === 0) {
-      return null;
-    }
-    return selectedNodeIds.reduce<IBoundingArea | null>((acc, nodeId) => {
-      const node = this.getNodeById(nodeId);
-      if (node) {
-        const nodeBoundingArea = node.getBoundingArea();
-        if (acc == null) {
-          return nodeBoundingArea;
-        } else {
-          return acc.union(nodeBoundingArea);
-        }
-      }
-      return acc;
-    }, null);
-  }
-
   public isSelectionContainsPoint(scenePoint: IWondPoint): boolean {
     const selectedNodeIds = Array.from(this.selectedNodeIds);
     if (selectedNodeIds.length === 0) {
@@ -138,11 +120,10 @@ export class WondSceneGraph implements ISceneGraph {
     }
 
     if (selectedNodeIds.length > 1) {
-      const selectionsBoundingArea = this.getSelectionsBoundingArea();
-      if (selectionsBoundingArea) {
-        return selectionsBoundingArea.containsPoint(scenePoint);
-      }
-      return false;
+      const selectionsBoundingArea = getGraphicsBoundingArea(
+        selectedNodeIds.map((nodeId) => this.getNodeById(nodeId)).filter((node) => node != undefined),
+      );
+      return selectionsBoundingArea != null && selectionsBoundingArea.containsPoint(scenePoint);
     } else {
       const selectedNodeId = selectedNodeIds[0];
       const selectedNode = this.getNodeById(selectedNodeId);
@@ -357,7 +338,10 @@ export class WondSceneGraph implements ISceneGraph {
     // Calculate and mark dirty area (union of old and new bounding areas)
     const newBoundingArea = node.getBoundingArea();
     const dirtyArea = oldBoundingArea.union(newBoundingArea);
+
     this.markDirtyArea(dirtyArea);
+
+    this.internalAPI.getSetterManager().onNodePropertyChange<ATTRS>(node.attrs.id, newProperty);
   }
 
   public addNodeByCoordinates(coordinates: number[], newNode: IGraphics): void {
@@ -486,15 +470,7 @@ export class WondSceneGraph implements ISceneGraph {
 
       sizeText = `${+selectedNode.attrs.size.x.toFixed(2)} x ${+selectedNode.attrs.size.y.toFixed(2)}`;
     } else {
-      let targetSelectionArea: IBoundingArea | null = null;
-      for (const child of selectedNodes) {
-        if (targetSelectionArea === null) {
-          targetSelectionArea = child.getBoundingArea();
-        } else {
-          targetSelectionArea = targetSelectionArea.union(child.getBoundingArea());
-        }
-      }
-
+      let targetSelectionArea: IBoundingArea | null = getGraphicsBoundingArea(selectedNodes);
       if (targetSelectionArea == null) {
         return;
       }

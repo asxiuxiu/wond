@@ -6,6 +6,7 @@ import type {
   IEditorOptions,
   IEditorSettings,
   ISetter,
+  ISetterCollection,
 } from './interfaces';
 import { WondCoordinateManager } from './coordinate_manager';
 import { WondCommandManager } from './command_manager';
@@ -60,6 +61,7 @@ export class WondEditor implements IEditor {
 
     this.#internalAPI = {
       getSettings: () => this.#settings,
+      getSetterManager: () => this.#setterManager,
       getHostEventManager: () => this.#hostEventManager,
       getSceneGraph: () => this.#sceneGraph,
       getCommandManager: () => this.#commandManager,
@@ -83,7 +85,7 @@ export class WondEditor implements IEditor {
     this.#cursorManager = new WondCursorManager(this.#internalAPI);
     this.#controlPointManager = new WondControlPointManager(this.#internalAPI);
     this.#rulerManager = new WondRulerManager(this.#internalAPI);
-    this.#setterManager = new WondSetterManager(this.#internalAPI);
+    this.#setterManager = new WondSetterManager(this.#internalAPI); // must initialize after scene graph.
     this.bindHostEvents();
     this.bindKeybindings();
   }
@@ -179,8 +181,16 @@ export class WondEditor implements IEditor {
     this.#sceneGraph.setHoverNode(nodeId);
   }
 
-  public getSetters(): ISetter[] {
-    return [];
+  public getSetterCollection(): ISetterCollection | null {
+    return this.#setterManager.getSetterCollection();
+  }
+
+  public getZoom(): number {
+    return this.#coordinateManager.getViewSpaceMeta().zoom;
+  }
+
+  public setZoom(zoom: number): void {
+    // TODO: implement this.
   }
 
   public on(event: keyof IEditorEvent, callback: IEditorEvent[keyof IEditorEvent]) {

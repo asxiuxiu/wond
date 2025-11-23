@@ -3,7 +3,7 @@ import { screenCoordsToSceneCoords } from './utils';
 
 export class WondCoordinateManager implements ICoordinateManager {
   private readonly canvasElement: HTMLCanvasElement;
-
+  private readonly internalAPI: IInternalAPI;
   private viewSpaceMeta: ViewSpaceMeta = {
     viewportOffsetX: 0,
     viewportOffsetY: 0,
@@ -16,6 +16,7 @@ export class WondCoordinateManager implements ICoordinateManager {
 
   constructor(internalAPI: IInternalAPI) {
     this.canvasElement = internalAPI.getCanvasRootElement();
+    this.internalAPI = internalAPI;
     this.initViewportMeta();
   }
 
@@ -35,6 +36,7 @@ export class WondCoordinateManager implements ICoordinateManager {
 
   public updateViewSpaceMeta(meta: Partial<ViewSpaceMeta>) {
     this.viewSpaceMeta = { ...this.viewSpaceMeta, ...meta };
+    this.internalAPI.emitEvent('onViewSpaceMetaChange');
   }
 
   public getViewSpaceMeta() {

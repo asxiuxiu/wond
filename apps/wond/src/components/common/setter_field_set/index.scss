@@ -1,0 +1,33 @@
+.wond-setter-field-set {
+  position: relative;
+  box-sizing: border-box;
+  outline: none;
+  margin: 0;
+  padding-left: var(--spacer-3);
+  padding-right: var(--spacer-2);
+
+  display: grid;
+  grid-template-rows: auto 24px;
+  grid-template-columns: 1fr 1fr 24px;
+  column-gap: var(--spacer-2);
+  row-gap: var(--spacer-1);
+  grid-template-areas:
+    'label1 label2 label2'
+    'input1 input2 icon';
+
+  .setter-field-set-title {
+    font-family: var(--text-body-small-strong-font-family);
+    font-size: var(--text-body-small-strong-font-size);
+    font-weight: var(--text-body-small-strong-font-weight);
+    letter-spacing: var(--text-body-small-strong-letter-spacing);
+    line-height: var(--text-body-small-strong-line-height);
+    color: var(--color-text-secondary);
+    grid-area: label1;
+  }
+
+  .setter-field-set-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacer-2);
+  }
+}

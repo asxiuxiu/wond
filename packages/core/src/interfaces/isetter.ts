@@ -1,8 +1,20 @@
+import type { IGraphicsAttrs } from './igraphics';
+
 export type SetterType = 'position' | 'layout' | 'appearance' | 'fill';
+
+export interface ISetterEvent {
+  onDirty(): void;
+}
 
 export interface ISetter {
   type: SetterType;
   title: string;
+  on<T extends keyof ISetterEvent>(event: T, callback: ISetterEvent[T]): void;
+  off<T extends keyof ISetterEvent>(event: T, callback: ISetterEvent[T]): void;
+}
+
+export interface ISetterInternal extends ISetter {
+  onNodePropertyChange<ATTRS extends IGraphicsAttrs>(nodeId: string, newProperty: Partial<ATTRS>): void;
 }
 
 type PropertyAccessors<T> = {

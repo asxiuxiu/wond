@@ -12,6 +12,11 @@ export interface WondRectAttrs extends IGraphicsAttrs {
 export class WondRect extends WondGraphics<WondRectAttrs> {
   type: GraphicsType = GraphicsType.Rectangle;
 
+  constructor(attrs: Omit<WondRectAttrs, 'id' | 'type'>) {
+    super(attrs);
+    this._attrs.type = this.type;
+  }
+
   protected generateScenePath() {
     const { canvaskit } = getCanvasKitContext();
     this._scenePath.reset();

@@ -20,6 +20,7 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
       size: { x: -1, y: -1 },
       ...attrs,
     });
+    this._attrs.type = this.type;
   }
 
   markScenePathDirty(newAttrs: Partial<WondDocumentAttrs>): boolean {

@@ -8,15 +8,19 @@ import type { ISceneGraph } from './iscene_graph';
 import type { WondToolType } from './itool';
 import type { IToolManager } from './itool_manager';
 import type { IEditorSettings } from './ieditor';
+import type { ISetterCollection, ISetterManager } from './isetter_manager';
 
 export interface IEditorEvent {
   onLayoutDirty(): void;
   onActiveToolChange(toolType: WondToolType): void;
   onSelectionChange(selectedNodeSet: Set<string>): void;
+  onSetterCollectionChange(setterCollection: ISetterCollection | null): void;
+  onViewSpaceMetaChange(): void;
 }
 
 export interface IInternalAPI {
   getSettings(): Readonly<IEditorSettings>;
+  getSetterManager(): ISetterManager;
   getHostEventManager(): IHostEventManager;
   getSceneGraph(): ISceneGraph;
   getCommandManager(): ICommandManager;

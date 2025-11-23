@@ -5,10 +5,10 @@ import type { IBoundingArea } from './ibounding_area';
 import type { Matrix } from 'transformation-matrix';
 
 export const GraphicsType = {
-  Document: 'document',
-  Graph: 'graph',
-  Rectangle: 'rectangle',
-  Vector: 'vector',
+  Document: 'Document',
+  Graph: 'Graph',
+  Rectangle: 'Rectangle',
+  Vector: 'Vector',
 } as const;
 
 export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];

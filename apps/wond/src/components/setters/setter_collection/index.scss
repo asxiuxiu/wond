@@ -1,0 +1,28 @@
+.wond-setter-collection {
+  position: relative;
+  font-size: 0.6875rem;
+  .collection-header {
+    padding: var(--spacer-1) var(--spacer-2);
+    height: 48px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacer-2);
+    border-bottom: 1px solid var(--color-border);
+
+    .collection-name {
+      font-family: var(--text-body-large-strong-font-family);
+      font-size: var(--text-body-large-strong-font-size);
+      font-weight: var(--text-body-large-strong-font-weight);
+      letter-spacing: var(--text-body-large-strong-letter-spacing);
+      line-height: var(--text-body-large-strong-line-height);
+      padding: 0 var(--spacer-2);
+      user-select: none;
+    }
+  }
+
+  .collection-setters-content {
+    position: relative;
+  }
+}
