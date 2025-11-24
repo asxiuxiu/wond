@@ -1,6 +1,7 @@
 import { applyToPoints, decomposeTSR } from 'transformation-matrix';
 import type { IBoundingArea, IGraphics, IGraphicsAttrs } from '../interfaces';
-import { rad2deg, WondBoundingArea } from '../geo';
+import { rad2deg } from '../geo';
+import { isEqual } from '@wond/common';
 
 export const getGraphicsPositionProperty = (graphics: IGraphics<IGraphicsAttrs>) => {
   const transform = graphics.attrs.transform;
@@ -36,4 +37,25 @@ export const getGraphicsBoundingArea = (graphics: IGraphics<IGraphicsAttrs>[]): 
       return acc.union(graphic.getBoundingArea());
     }
   }, null);
+};
+
+export const getAnchorsBetweenChildAndParentBoundingArea = (child: IBoundingArea, parent: IBoundingArea) => {
+  const anchors = [];
+  if (isEqual(child.left, parent.left) && isEqual(child.top, parent.top)) {
+    anchors.push({ x: child.left, y: child.top });
+  }
+
+  if (isEqual(child.right, parent.right) && isEqual(child.top, parent.top)) {
+    anchors.push({ x: child.right, y: child.top });
+  }
+
+  if (isEqual(child.left, parent.left) && isEqual(child.bottom, parent.bottom)) {
+    anchors.push({ x: child.left, y: child.bottom });
+  }
+
+  if (isEqual(child.right, parent.right) && isEqual(child.bottom, parent.bottom)) {
+    anchors.push({ x: child.right, y: child.bottom });
+  }
+
+  return anchors;
 };

@@ -1,5 +1,6 @@
 import type { IMouseEvent, IWondPoint, IInternalAPI, IGraphicsAttrs, ViewSpaceMeta } from '../../interfaces';
 import {
+  aspectRatioLockScale,
   getEdgeResizeControlPointNormalizedPos,
   getResizeControlPointFixedType,
   sceneCoordsToPaintCoords,
@@ -12,7 +13,7 @@ import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 't
 export class EdgeResizeControlPoint extends ControlPointBase {
   visible: boolean = false;
 
-  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size'> | null = null;
+  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size' | 'isAspectRatioLocked'> | null = null;
 
   protected getAnchorScenePos() {
     return { x: -1, y: -1 };
@@ -210,16 +211,20 @@ export class EdgeResizeControlPoint extends ControlPointBase {
     const newScaleValue = projection / scaleDirectionLength;
     const sign = newScaleValue / Math.abs(newScaleValue);
 
-    const newScale = {
-      x: Math.abs(scaleDirectionUnit.x * newScaleValue),
-      y: Math.abs(scaleDirectionUnit.y * newScaleValue),
+    let newScale = {
+      x: Math.abs(scaleDirectionUnit.x * newScaleValue) || 1,
+      y: Math.abs(scaleDirectionUnit.y * newScaleValue) || 1,
     };
 
-    if (event.shiftKey) {
-      const maxScale = Math.max(newScale.x, newScale.y);
-      newScale.x = maxScale;
-      newScale.y = maxScale;
+    if (event.shiftKey || this.originAttrs.isAspectRatioLocked) {
+      newScale = aspectRatioLockScale(newScale);
     }
+
+    internalAPI.getSceneGraph().setSelectionDraggingState({
+      type: 'resize',
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    });
 
     const newTransform = compose([
       this.originAttrs.transform,
@@ -234,6 +239,7 @@ export class EdgeResizeControlPoint extends ControlPointBase {
   }
 
   public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI) {
+    internalAPI.getSceneGraph().setSelectionDraggingState(null);
     return null;
   }
 }

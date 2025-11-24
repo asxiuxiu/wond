@@ -13,6 +13,8 @@ import { applyToPoints, compose, inverse, scale } from 'transformation-matrix';
 import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from '../operations';
 import { distance } from '../geo';
 import {
+  getAnchorsBetweenChildAndParentBoundingArea,
+  getGraphicsBoundingArea,
   isAxisAlignedAfterTransform,
   sceneCoordsToScreenCoords,
   screenCoordsToPaintCoords,
@@ -24,7 +26,12 @@ export class ToolMove extends ToolBase {
   private command: ICommand | null = null;
 
   private isMovingSelection = false;
-  private modifyingNodeStartAttrsMap: Map<string, Pick<IGraphicsAttrs, 'transform' | 'size'>> = new Map();
+  private modifyingNodeStartAttrsMap: Map<
+    string,
+    Pick<IGraphicsAttrs, 'transform' | 'size'> & {
+      anchors: IWondPoint[];
+    }
+  > = new Map();
 
   private targetControlPoint: IWondControlPoint<IGraphicsAttrs> | null = null;
 
@@ -77,10 +84,15 @@ export class ToolMove extends ToolBase {
     const selectionNodes = Array.from(internalAPI.getSceneGraph().getSelectionsCopy())
       .map((nodeId) => internalAPI.getSceneGraph().getNodeById(nodeId))
       .filter((node) => node != undefined);
+    const selectionBoundingArea = getGraphicsBoundingArea(selectionNodes);
+    if (selectionBoundingArea == null) {
+      return;
+    }
     selectionNodes.forEach((node) => {
       this.modifyingNodeStartAttrsMap.set(node.attrs.id, {
         transform: { ...node.attrs.transform },
         size: { ...node.attrs.size },
+        anchors: getAnchorsBetweenChildAndParentBoundingArea(node.getBoundingArea(), selectionBoundingArea),
       });
     });
   }
@@ -181,10 +193,18 @@ export class ToolMove extends ToolBase {
               { x: 0, y: startAttrs.size.y },
             ]);
 
-            const newSize = {
+            let newSize = {
               x: distance(NW_Point, NE_Point),
               y: distance(NW_Point, SW_Point),
             };
+
+            if (graphics.attrs.isAspectRatioLocked) {
+              // const newScale = Math.sqrt((newSize.x / startAttrs.size.x) * (newSize.y / startAttrs.size.y));
+              // newSize = {
+              //   x: startAttrs.size.x * newScale,
+              //   y: startAttrs.size.y * newScale,
+              // };
+            }
 
             const isAxisAligned = isAxisAlignedAfterTransform(newTransform);
             if (isAxisAligned) {
@@ -252,7 +272,11 @@ export class ToolMove extends ToolBase {
         return;
       }
 
-      internalAPI.getSceneGraph().setIsSelectionMoveDragging(true);
+      internalAPI.getSceneGraph().setSelectionDraggingState({
+        type: 'move',
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+      });
 
       for (const [nodeId, startAttrs] of this.modifyingNodeStartAttrsMap.entries()) {
         const node = internalAPI.getSceneGraph().getNodeById(nodeId);
@@ -279,7 +303,7 @@ export class ToolMove extends ToolBase {
     this.targetControlPoint?.onDragEnd(event, internalAPI);
     this.targetControlPoint = null;
 
-    internalAPI.getSceneGraph().setIsSelectionMoveDragging(false);
+    internalAPI.getSceneGraph().setSelectionDraggingState(null);
 
     if (!this.command || this.command.getOperations().length === 0) {
       if (this.startPoint) {

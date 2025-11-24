@@ -61,6 +61,13 @@ export class ToolDrawRect extends ToolBase {
     }
 
     const newProperty = this.getTargetRectProperty(this.startPoint, this.endPoint);
+    if (event.shiftKey) {
+      const maxSize = Math.max(newProperty.size.x, newProperty.size.y);
+      newProperty.size = {
+        x: maxSize,
+        y: maxSize,
+      };
+    }
 
     if (!this.drawingNode) {
       this.drawingNode = new WondRect({
@@ -80,6 +87,12 @@ export class ToolDrawRect extends ToolBase {
       this.command.addOperations([updateRectOperation]);
     }
 
+    internalAPI.getSceneGraph().setSelectionDraggingState({
+      type: 'resize',
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    });
+
     // compress the operation
     this.command.setOperations(this.command.getOperations().slice(0, 2));
   };
@@ -92,5 +105,6 @@ export class ToolDrawRect extends ToolBase {
 
     this.drawingNode = null;
     internalAPI.getToolManager().setActiveToolByType(WondToolType.Move);
+    internalAPI.getSceneGraph().setSelectionDraggingState(null);
   };
 }

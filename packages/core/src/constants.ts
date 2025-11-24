@@ -28,6 +28,8 @@ export interface CachePaintConfig {
   type: 'stroke' | 'fill';
   color: IWondColor;
   strokeWidth?: number;
+  dashInterval?: number[];
+  dashPhase?: number;
 }
 
 export const CACHE_PAINT_COLLECTION: Record<string, CachePaintConfig> = {
@@ -46,6 +48,15 @@ export const CACHE_PAINT_COLLECTION: Record<string, CachePaintConfig> = {
   selectionRangeFillPaint: {
     type: 'fill',
     color: DEFAULT_SELECTION_RANGE_FILL_COLOR,
+  },
+
+  // Selection resize aspect ratio locked dash line
+  aspectRatioLockedPaint: {
+    type: 'stroke',
+    color: DEFAULT_OVERLAY_COLOR,
+    strokeWidth: 1,
+    dashInterval: [2, 2],
+    dashPhase: 0,
   },
 
   // Selection label
