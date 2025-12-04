@@ -1,5 +1,5 @@
 import type { Path } from 'canvaskit-wasm';
-import type { IWondPoint, WondGraphicDrawingContext } from './itypes';
+import type { IWondPoint, WondGraphicDrawingContext, IWondColor } from './itypes';
 import type { IWondControlPoint } from './index';
 import type { IBoundingArea } from './ibounding_area';
 import type { Matrix } from 'transformation-matrix';
@@ -13,19 +13,31 @@ export const GraphicsType = {
 
 export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
 
-export interface IGraphicsAttrs {
+export interface IBaseAttrs {
   readonly id: string;
   type: GraphicsType;
   name: string;
-  transform: Matrix;
-  visible: boolean;
-  locked: boolean;
-  isAspectRatioLocked: boolean;
-  size: { x: number; y: number };
-  children?: IGraphics[];
 }
 
-export interface IGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> {
+export interface ITransformAttrs {
+  transform: Matrix;
+  size: { x: number; y: number };
+  isAspectRatioLocked: boolean;
+  locked: boolean;
+}
+
+export interface IVisibilityAttrs {
+  visible: boolean;
+  opacity: number;
+}
+
+export interface IChildrenAttrs {
+  children: IGraphics[];
+}
+
+export type IGraphicsAttrs = IBaseAttrs & ITransformAttrs & IVisibilityAttrs & Partial<IChildrenAttrs>;
+
+export interface IGraphics<T extends IBaseAttrs = IGraphicsAttrs> {
   get attrs(): Readonly<T>;
   set attrs(newAttrs: T);
   parentId?: string;

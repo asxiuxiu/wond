@@ -1,31 +1,46 @@
-import type { IWondColor, WondGraphicDrawingContext, IGraphicsAttrs, IGraphics, IBoundingArea } from '../interfaces';
-import { WondGraphics } from './graphics';
+import type {
+  IWondColor,
+  WondGraphicDrawingContext,
+  IBaseAttrs,
+  IChildrenAttrs,
+  IGraphics,
+  IBoundingArea,
+  IWondControlPoint,
+  IGraphicsAttrs,
+} from '../interfaces';
+import { GraphicsType } from '../interfaces';
 import { ZERO_BOUNDING_AREA } from '../constants';
 import { getCanvasKitContext } from '../context';
+import { getUuid } from '@wond/common';
+import type { Path } from 'canvaskit-wasm';
+import type { IWondPoint } from '../interfaces';
 
-export interface WondDocumentAttrs extends IGraphicsAttrs {
-  backgroundColor: IWondColor;
-  children: IGraphics[];
-}
+export type WondDocumentAttrs = IBaseAttrs &
+  IChildrenAttrs & {
+    backgroundColor: IWondColor;
+  };
 
-export class WondDocument extends WondGraphics<WondDocumentAttrs> {
+export class WondDocument implements IGraphics<WondDocumentAttrs> {
+  type: GraphicsType = GraphicsType.Document;
+  protected _attrs: WondDocumentAttrs;
+  parentId?: string;
+
   constructor(attrs: Partial<Omit<WondDocumentAttrs, 'id' | 'type'>>) {
-    super({
-      locked: false,
-      visible: true,
-      name: 'rootPage',
-      transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-      backgroundColor: { r: 255, g: 255, b: 255, a: 1 },
-      children: [],
-      isAspectRatioLocked: false,
-      size: { x: -1, y: -1 },
-      ...attrs,
-    });
-    this._attrs.type = this.type;
+    this._attrs = {
+      id: getUuid(),
+      type: this.type,
+      name: attrs.name ?? 'rootPage',
+      backgroundColor: attrs.backgroundColor ?? { r: 255, g: 255, b: 255, a: 1 },
+      children: attrs.children ?? [],
+    };
   }
 
-  markScenePathDirty(newAttrs: Partial<WondDocumentAttrs>): boolean {
-    return false;
+  get attrs(): Readonly<WondDocumentAttrs> {
+    return this._attrs;
+  }
+
+  set attrs(newAttrs: WondDocumentAttrs) {
+    this._attrs = { ...this._attrs, ...newAttrs };
   }
 
   public draw(context: WondGraphicDrawingContext): void {
@@ -41,6 +56,21 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
     );
   }
 
+  getScenePath(): Path {
+    const { canvaskit } = getCanvasKitContext();
+    return new canvaskit.Path();
+  }
+
+  getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
+    return [];
+  }
+
+  clearControlPoints(): void {}
+
+  containsPoint(_point: IWondPoint): boolean {
+    return false;
+  }
+
   getBoundingArea(): IBoundingArea {
     return ZERO_BOUNDING_AREA;
   }
@@ -49,5 +79,5 @@ export class WondDocument extends WondGraphics<WondDocumentAttrs> {
     return '';
   }
 
-  drawOutline(context: WondGraphicDrawingContext): void {}
+  drawOutline(_context: WondGraphicDrawingContext, _type?: 'selection' | 'hover'): void {}
 }

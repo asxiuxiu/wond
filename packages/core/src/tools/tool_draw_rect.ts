@@ -96,6 +96,7 @@ export class ToolDrawRect extends ToolBase {
         visible: true,
         locked: false,
         isAspectRatioLocked: false,
+        opacity: 1,
         ...newProperty,
       });
 
