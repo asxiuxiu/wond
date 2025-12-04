@@ -28,19 +28,44 @@ export class ToolDrawRect extends ToolBase {
     );
   };
 
-  private getTargetRectProperty(startPoint: IWondPoint, endPoint: IWondPoint) {
+  private getTargetRectProperty(
+    startPoint: IWondPoint,
+    endPoint: IWondPoint,
+    meta: {
+      shiftKey: boolean;
+      altKey: boolean;
+    },
+  ) {
+    let sizeX = Math.max(Math.round(Math.abs(endPoint.x - startPoint.x)), 1);
+    let sizeY = Math.max(Math.round(Math.abs(endPoint.y - startPoint.y)), 1);
+    if (meta.shiftKey) {
+      const maxSize = Math.max(sizeX, sizeY);
+      sizeX = maxSize;
+      sizeY = maxSize;
+    }
+
+    const unitVector = {
+      x: (endPoint.x - startPoint.x) / Math.abs(endPoint.x - startPoint.x),
+      y: (endPoint.y - startPoint.y) / Math.abs(endPoint.y - startPoint.y),
+    };
+
+    const diagonalPoint = {
+      x: startPoint.x + unitVector.x * sizeX,
+      y: startPoint.y + unitVector.y * sizeY,
+    };
+
     const newProperty = {
       size: {
-        x: Math.max(Math.round(Math.abs(endPoint.x - startPoint.x)), 1),
-        y: Math.max(Math.round(Math.abs(endPoint.y - startPoint.y)), 1),
+        x: sizeX,
+        y: sizeY,
       },
       transform: {
         a: 1,
         b: 0,
         c: 0,
         d: 1,
-        e: Math.round(Math.min(startPoint.x, endPoint.x)),
-        f: Math.round(Math.min(startPoint.y, endPoint.y)),
+        e: Math.min(startPoint.x, diagonalPoint.x),
+        f: Math.min(startPoint.y, diagonalPoint.y),
       },
     };
 
@@ -60,14 +85,10 @@ export class ToolDrawRect extends ToolBase {
       internalAPI.getCommandManager().executeCommand(this.command);
     }
 
-    const newProperty = this.getTargetRectProperty(this.startPoint, this.endPoint);
-    if (event.shiftKey) {
-      const maxSize = Math.max(newProperty.size.x, newProperty.size.y);
-      newProperty.size = {
-        x: maxSize,
-        y: maxSize,
-      };
-    }
+    const newProperty = this.getTargetRectProperty(this.startPoint, this.endPoint, {
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    });
 
     if (!this.drawingNode) {
       this.drawingNode = new WondRect({

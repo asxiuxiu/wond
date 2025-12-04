@@ -212,8 +212,8 @@ export class EdgeResizeControlPoint extends ControlPointBase {
     const sign = newScaleValue / Math.abs(newScaleValue);
 
     let newScale = {
-      x: Math.abs(scaleDirectionUnit.x * newScaleValue) || 1,
-      y: Math.abs(scaleDirectionUnit.y * newScaleValue) || 1,
+      x: Math.abs(scaleDirectionUnit.x * newScaleValue),
+      y: Math.abs(scaleDirectionUnit.y * newScaleValue),
     };
 
     if (event.shiftKey || this.originAttrs.isAspectRatioLocked) {

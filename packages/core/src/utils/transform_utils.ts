@@ -1,3 +1,4 @@
+import { floatEqual } from '@wond/common';
 import type { Matrix3x3 } from 'canvaskit-wasm';
 import { type Matrix } from 'transformation-matrix';
 
@@ -25,9 +26,11 @@ export const isAxisAlignedAfterTransform = (matrix: Matrix): boolean => {
 };
 
 export const aspectRatioLockScale = (scale: { x: number; y: number }): { x: number; y: number } => {
-  const maxScale = Math.max(scale.x, scale.y);
+  const maxScale = Math.max(Math.abs(scale.x), Math.abs(scale.y));
+  const xRatio = floatEqual(scale.x, 0) ? 1 : scale.x / Math.abs(scale.x);
+  const yRatio = floatEqual(scale.y, 0) ? 1 : scale.y / Math.abs(scale.y);
   return {
-    x: (scale.x / Math.abs(scale.x)) * maxScale,
-    y: (scale.y / Math.abs(scale.y)) * maxScale,
+    x: xRatio * maxScale,
+    y: yRatio * maxScale,
   };
 };
