@@ -1,6 +1,8 @@
-import { applyToPoints, decomposeTSR } from 'transformation-matrix';
+import { applyToPoints, decomposeTSR, type Matrix } from 'transformation-matrix';
 import type { IBoundingArea, IGraphics, IGraphicsAttrs } from '../interfaces';
 import { rad2deg, WondBoundingArea } from '../geo';
+import { floatEqual } from '@wond/common';
+import type { BBox } from 'rbush';
 
 export const getGraphicsPositionProperty = (graphics: IGraphics<IGraphicsAttrs>) => {
   const transform = graphics.attrs.transform;
@@ -36,4 +38,46 @@ export const getGraphicsBoundingArea = (graphics: IGraphics<IGraphicsAttrs>[]): 
       return acc.union(graphic.getBoundingArea());
     }
   }, null);
+};
+
+export const generateBoundingArea = (size: { x: number; y: number }, transform: Matrix): IBoundingArea => {
+  const points = applyToPoints(transform, [
+    { x: 0, y: 0 },
+    { x: size.x, y: 0 },
+    { x: size.x, y: size.y },
+    { x: 0, y: size.y },
+  ]);
+  const bounds = points.reduce(
+    (acc, point) => {
+      return {
+        minX: Math.min(acc.minX, point.x),
+        minY: Math.min(acc.minY, point.y),
+        maxX: Math.max(acc.maxX, point.x),
+        maxY: Math.max(acc.maxY, point.y),
+      };
+    },
+    { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+  );
+  return new WondBoundingArea(bounds.minX, bounds.maxX, bounds.minY, bounds.maxY);
+};
+
+export const getAnchorsBetweenChildAndParentBoundingArea = (child: IBoundingArea, parent: IBoundingArea) => {
+  const anchors = [];
+  if (floatEqual(child.left, parent.left) && floatEqual(child.top, parent.top)) {
+    anchors.push({ x: child.left, y: child.top });
+  }
+
+  if (floatEqual(child.right, parent.right) && floatEqual(child.top, parent.top)) {
+    anchors.push({ x: child.right, y: child.top });
+  }
+
+  if (floatEqual(child.left, parent.left) && floatEqual(child.bottom, parent.bottom)) {
+    anchors.push({ x: child.left, y: child.bottom });
+  }
+
+  if (floatEqual(child.right, parent.right) && floatEqual(child.bottom, parent.bottom)) {
+    anchors.push({ x: child.right, y: child.bottom });
+  }
+
+  return anchors;
 };

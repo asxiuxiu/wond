@@ -1,4 +1,4 @@
-import { EventEmitter, isEqual } from '@wond/common';
+import { EventEmitter, isEqual, floatEqual } from '@wond/common';
 import type {
   ICommand,
   IGraphics,
@@ -115,8 +115,8 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
         isAspectRatioLocked: g.attrs.isAspectRatioLocked,
       }));
       const first = properties[0];
-      const allSameWidth = properties.every((prop) => isEqual(prop.width, first.width));
-      const allSameHeight = properties.every((prop) => isEqual(prop.height, first.height));
+      const allSameWidth = properties.every((prop) => floatEqual(prop.width, first.width));
+      const allSameHeight = properties.every((prop) => floatEqual(prop.height, first.height));
       const allSameIsAspectRatioLocked = properties.every((prop) =>
         isEqual(prop.isAspectRatioLocked, first.isAspectRatioLocked),
       );

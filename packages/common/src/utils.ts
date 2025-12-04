@@ -4,6 +4,14 @@ export const getUuid = () => {
   return uuidv4();
 };
 
+
+export const FLOAT_EPSILON = 1e-10;
+
+
+export const floatEqual = (a: number, b: number, epsilon: number = FLOAT_EPSILON): boolean => {
+  return Math.abs(a - b) <= epsilon;
+};
+
 export const compareCoordinates = (coordinates1: number[], coordinates2: number[]): boolean => {
   const minLength = Math.min(coordinates1.length, coordinates2.length);
   let i = 0;

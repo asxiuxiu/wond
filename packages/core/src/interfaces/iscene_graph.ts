@@ -1,14 +1,19 @@
 import type { BBox } from 'rbush';
 import type { IGraphics, IGraphicsAttrs } from './igraphics';
-import type { IBoundingArea } from './ibounding_area';
 import type { IWondPoint, WondTextMetrics } from './itypes';
+
+export interface ISelectionDraggingState {
+  type: 'move' | 'resize';
+  shiftKey: boolean;
+  altKey: boolean;
+}
 
 export interface ISceneGraph {
   getRootNode(): IGraphics;
   isNodeSelected(nodeId: string): boolean;
   getSelectionsCopy(): Set<string>;
   isSelectionContainsPoint(scenePoint: IWondPoint): boolean;
-  setIsSelectionMoveDragging(isSelectionMoveDragging: boolean): void;
+  setSelectionDraggingState(state: ISelectionDraggingState | null): void;
   setSelectionRange(range: BBox | null): void;
   setHoverNode(nodeId: string | null): void;
   getHoverNode(): string | null;

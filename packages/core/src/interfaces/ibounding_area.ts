@@ -1,3 +1,4 @@
+import type { Matrix } from 'transformation-matrix';
 import type { IWondPoint } from './itypes';
 
 export interface IBoundingArea {
@@ -16,4 +17,5 @@ export interface IBoundingArea {
   getHeight(): number;
   getArea(): number;
   getCenter(): IWondPoint;
+  transform(matrix: Matrix): IBoundingArea;
 }

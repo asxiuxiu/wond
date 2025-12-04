@@ -5,10 +5,12 @@ import type { IEditor, IEditorOptions } from './interfaces';
 async function convertFontDataToArrayBuffers(fontDataArray: FontData[]) {
   try {
     const arrayBuffers = await Promise.all(
-      fontDataArray.map(async (fontData) => {
-        const blob = await fontData.blob();
-        return await blob.arrayBuffer();
-      }),
+      fontDataArray
+        .filter((fontData) => fontData.fullName.includes('Arial'))
+        .map(async (fontData) => {
+          const blob = await fontData.blob();
+          return await blob.arrayBuffer();
+        }),
     );
 
     return arrayBuffers;

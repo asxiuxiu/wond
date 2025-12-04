@@ -13,7 +13,13 @@ import type {
 import type { IWondCursor } from '../../cursor_manager';
 import { getCanvasKitContext } from '../../context';
 import type { Path } from 'canvaskit-wasm';
-import { generateShapePath, getMatrix3x3FromTransform, sceneCoordsToPaintCoords } from '../../utils';
+import {
+  generateShapePath,
+  getAnchorsBetweenChildAndParentBoundingArea,
+  getGraphicsBoundingArea,
+  getMatrix3x3FromTransform,
+  sceneCoordsToPaintCoords,
+} from '../../utils';
 import { compose, decomposeTSR, translate, type Matrix } from 'transformation-matrix';
 import { rad2deg } from '../../geo';
 
@@ -54,38 +60,46 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
     return this._cachePath;
   }
 
-  protected getRefGraphicsAttrs(): Pick<T, 'transform' | 'size'> {
+  protected getRefGraphicsAttrs(): Pick<T, 'transform' | 'size' | 'isAspectRatioLocked'> {
     if (this.refGraphics.length === 0) {
       return {
         size: { x: 0, y: 0 },
         transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+        isAspectRatioLocked: false,
       };
     } else if (this.refGraphics.length === 1) {
       const graphics = this.refGraphics[0];
       return {
         size: { ...graphics.attrs.size },
         transform: { ...graphics.attrs.transform },
+        isAspectRatioLocked: graphics.attrs.isAspectRatioLocked,
       };
     } else {
-      let accBoundingArea: IBoundingArea | null = null;
-      for (const graphics of this.refGraphics) {
-        if (accBoundingArea === null) {
-          accBoundingArea = graphics.getBoundingArea();
-        } else {
-          accBoundingArea = accBoundingArea.union(graphics.getBoundingArea());
-        }
-      }
+      let accBoundingArea: IBoundingArea | null = getGraphicsBoundingArea(this.refGraphics);
 
       if (accBoundingArea == null) {
         return {
           size: { x: 0, y: 0 },
           transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          isAspectRatioLocked: false,
         };
+      }
+
+      // calculate the anchor count between graphics and the acc bounding area
+      // if one graphics have two anchors, the aspect ratio is locked.
+      let isAspectRatioLocked = false;
+      for (const graphics of this.refGraphics) {
+        const anchors = getAnchorsBetweenChildAndParentBoundingArea(graphics.getBoundingArea(), accBoundingArea);
+        if (anchors.length === 2) {
+          isAspectRatioLocked = true;
+          break;
+        }
       }
 
       return {
         size: { x: accBoundingArea.getWidth(), y: accBoundingArea.getHeight() },
         transform: { a: 1, b: 0, c: 0, d: 1, e: accBoundingArea.left, f: accBoundingArea.top },
+        isAspectRatioLocked: isAspectRatioLocked,
       };
     }
   }

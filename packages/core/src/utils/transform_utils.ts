@@ -23,3 +23,11 @@ export const isAxisAlignedAfterTransform = (matrix: Matrix): boolean => {
 
   return isVector1AxisAligned && isVector2AxisAligned && isPerpendicular;
 };
+
+export const aspectRatioLockScale = (scale: { x: number; y: number }): { x: number; y: number } => {
+  const maxScale = Math.max(scale.x, scale.y);
+  return {
+    x: (scale.x / Math.abs(scale.x)) * maxScale,
+    y: (scale.y / Math.abs(scale.y)) * maxScale,
+  };
+};

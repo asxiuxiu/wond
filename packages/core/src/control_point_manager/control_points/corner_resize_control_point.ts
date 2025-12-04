@@ -14,18 +14,18 @@ import {
   CONTROL_POINT_RADIUS,
   sceneCoordsToPaintCoords,
   getMatrix3x3FromTransform,
+  aspectRatioLockScale,
 } from '../../utils';
 import { ControlPointBase } from './control_point_base';
 import type { IWondCursor } from '../../cursor_manager';
 import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 'transformation-matrix';
 import { getCanvasKitContext } from '../../context';
-import type { Path } from 'canvaskit-wasm';
 
 export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
   visible: boolean = true;
 
-  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size'> | null = null;
+  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size' | 'isAspectRatioLocked'> | null = null;
 
   private getNormalizedPos() {
     return getCornerControlPointNormalizedPos(this.type);
@@ -118,16 +118,20 @@ export class CornerResizeControlPoint extends ControlPointBase {
       y: this.originAttrs.size.y * movingNormalizedPos.y,
     };
 
-    const scaleLocalSpace = {
+    let scaleLocalSpace = {
       x: (endLocalSpacePoint.x - fixedPointInLocalSpace.x) / (movingPointInLocalSpace.x - fixedPointInLocalSpace.x),
       y: (endLocalSpacePoint.y - fixedPointInLocalSpace.y) / (movingPointInLocalSpace.y - fixedPointInLocalSpace.y),
     };
 
-    if (event.shiftKey) {
-      const maxScale = Math.max(scaleLocalSpace.x, scaleLocalSpace.y);
-      scaleLocalSpace.x = maxScale;
-      scaleLocalSpace.y = maxScale;
+    if (event.shiftKey || this.originAttrs.isAspectRatioLocked) {
+      scaleLocalSpace = aspectRatioLockScale(scaleLocalSpace);
     }
+
+    internalAPI.getSceneGraph().setSelectionDraggingState({
+      type: 'resize',
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+    });
 
     const newTransform = compose([
       this.originAttrs.transform,
@@ -142,6 +146,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
   }
 
   public onDragEnd(event: IMouseEvent, internalAPI: IInternalAPI) {
+    internalAPI.getSceneGraph().setSelectionDraggingState(null);
     return null;
   }
 }

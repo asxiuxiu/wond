@@ -16,6 +16,7 @@ import type {
   IWondPoint,
   WondGraphicDrawingContext,
   RulerTextProperty,
+  ISelectionDraggingState,
 } from './interfaces';
 import {
   getGraphicsBoundingArea,
@@ -37,7 +38,7 @@ export class WondSceneGraph implements ISceneGraph {
   // selections
   private readonly selectedNodeIds: Set<string> = new Set();
   private selectionRange: BBox | null = null;
-  private isSelectionMoveDragging: boolean = false;
+  private selectionDraggingState: ISelectionDraggingState | null = null;
 
   // hover
   private hoverNode: string | null = null;
@@ -89,6 +90,9 @@ export class WondSceneGraph implements ISceneGraph {
       if (value.type === 'stroke') {
         paint.setStyle(canvaskit.PaintStyle.Stroke);
         paint.setStrokeWidth(value.strokeWidth || 1);
+        if (value.dashInterval) {
+          paint.setPathEffect(canvaskit.PathEffect.MakeDash(value.dashInterval, value.dashPhase || 0));
+        }
       } else if (value.type === 'fill') {
         paint.setStyle(canvaskit.PaintStyle.Fill);
       }
@@ -134,8 +138,8 @@ export class WondSceneGraph implements ISceneGraph {
     }
   }
 
-  public setIsSelectionMoveDragging(isSelectionMoveDragging: boolean) {
-    this.isSelectionMoveDragging = isSelectionMoveDragging;
+  public setSelectionDraggingState(state: ISelectionDraggingState | null) {
+    this.selectionDraggingState = state;
   }
 
   setHoverNode(nodeId: string | null) {
@@ -426,7 +430,7 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   private drawSelections(context: WondGraphicDrawingContext) {
-    if (this.isSelectionMoveDragging) {
+    if (this.selectionDraggingState !== null && this.selectionDraggingState.type === 'move') {
       return;
     }
 
@@ -436,10 +440,11 @@ export class WondSceneGraph implements ISceneGraph {
     }
 
     const { canvas, cachePaintCollection } = context;
-    const { canvaskit, fontMgr } = getCanvasKitContext();
+    const { canvaskit } = getCanvasKitContext();
 
     const overlayStrokePaint = cachePaintCollection.get('overlayStrokePaint');
-    if (!overlayStrokePaint) {
+    const aspectRatioLockedPaint = cachePaintCollection.get('aspectRatioLockedPaint');
+    if (!overlayStrokePaint || !aspectRatioLockedPaint) {
       return;
     }
 
@@ -448,18 +453,34 @@ export class WondSceneGraph implements ISceneGraph {
       child.drawOutline(context);
     }
 
-    const boundingRectPath = new canvaskit.Path();
-
     let edgePoints: IWondPoint[] = [];
     let sizeText = '';
 
     if (selectedNodeIds.length == 1) {
       const selectedNode = selectedNodes[0];
 
+      // bounding Path
+      const boundingRectPath = new canvaskit.Path();
       const path = scenePathToPaintPath(selectedNode.getScenePath(), context.viewSpaceMeta);
       boundingRectPath.addPath(path);
-
       canvas.drawPath(boundingRectPath, overlayStrokePaint);
+
+      // aspect ratio locked Path
+      if (
+        this.selectionDraggingState !== null &&
+        this.selectionDraggingState.type === 'resize' &&
+        (this.selectionDraggingState.shiftKey || selectedNode.attrs.isAspectRatioLocked)
+      ) {
+        const aspectRatioLockedPath = new canvaskit.Path();
+        const [startPoint, endPoint] = applyToPoints(selectedNode.attrs.transform, [
+          { x: 0, y: 0 },
+          { x: selectedNode.attrs.size.x, y: selectedNode.attrs.size.y },
+        ]);
+        aspectRatioLockedPath.moveTo(startPoint.x, startPoint.y);
+        aspectRatioLockedPath.lineTo(endPoint.x, endPoint.y);
+        scenePathToPaintPath(aspectRatioLockedPath, context.viewSpaceMeta);
+        canvas.drawPath(aspectRatioLockedPath, aspectRatioLockedPaint);
+      }
 
       edgePoints = applyToPoints(selectedNode.attrs.transform, [
         { x: 0, y: 0 },
@@ -474,6 +495,9 @@ export class WondSceneGraph implements ISceneGraph {
       if (targetSelectionArea == null) {
         return;
       }
+
+      // bounding Path
+      const boundingRectPath = new canvaskit.Path();
       boundingRectPath.addRect(
         canvaskit.LTRBRect(
           targetSelectionArea.left,
@@ -484,6 +508,28 @@ export class WondSceneGraph implements ISceneGraph {
       );
       scenePathToPaintPath(boundingRectPath, context.viewSpaceMeta);
       canvas.drawPath(boundingRectPath, overlayStrokePaint);
+
+      // aspect ratio locked Path
+      if (this.selectionDraggingState !== null && this.selectionDraggingState.type === 'resize') {
+        const aspectRatioLockedPath = new canvaskit.Path();
+        if (this.selectionDraggingState.shiftKey) {
+          aspectRatioLockedPath.moveTo(targetSelectionArea.left, targetSelectionArea.top);
+          aspectRatioLockedPath.lineTo(targetSelectionArea.right, targetSelectionArea.bottom);
+        } else {
+          for (const graphic of selectedNodes) {
+            if (graphic.attrs.isAspectRatioLocked) {
+              const [startPoint, endPoint] = applyToPoints(graphic.attrs.transform, [
+                { x: 0, y: 0 },
+                { x: graphic.attrs.size.x, y: graphic.attrs.size.y },
+              ]);
+              aspectRatioLockedPath.moveTo(startPoint.x, startPoint.y);
+              aspectRatioLockedPath.lineTo(endPoint.x, endPoint.y);
+            }
+          }
+        }
+        scenePathToPaintPath(aspectRatioLockedPath, context.viewSpaceMeta);
+        canvas.drawPath(aspectRatioLockedPath, aspectRatioLockedPaint);
+      }
 
       edgePoints = [
         { x: targetSelectionArea.left, y: targetSelectionArea.top },
@@ -586,7 +632,7 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   private drawControlPoints(context: WondGraphicDrawingContext) {
-    if (this.isSelectionMoveDragging) {
+    if (this.selectionDraggingState !== null && this.selectionDraggingState.type === 'move') {
       return;
     }
 
@@ -1034,7 +1080,7 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   private drawHover(context: WondGraphicDrawingContext) {
-    if (this.isSelectionMoveDragging) {
+    if (this.selectionDraggingState !== null && this.selectionDraggingState.type === 'move') {
       return;
     }
 

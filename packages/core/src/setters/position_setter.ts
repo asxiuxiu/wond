@@ -10,7 +10,7 @@ import type {
   SetterType,
 } from '../interfaces';
 import { getGraphicsBoundingArea, getGraphicsBoundingCenter, getGraphicsPositionProperty } from '../utils';
-import { EventEmitter, isEqual } from '@wond/common';
+import { EventEmitter, floatEqual } from '@wond/common';
 import { compose, flipX, flipY, rotateDEG, translate } from 'transformation-matrix';
 import { WondUpdatePropertyOperation } from '../operations';
 
@@ -75,9 +75,9 @@ export class PositionSetter implements IPositionSetter, ISetterInternal {
     } else if (this.refGraphics.length > 1) {
       const positionProperties = this.refGraphics.map((g) => getGraphicsPositionProperty(g));
       const first = positionProperties[0];
-      const allSameX = positionProperties.every((prop) => isEqual(prop.x, first.x));
-      const allSameY = positionProperties.every((prop) => isEqual(prop.y, first.y));
-      const allSameRotation = positionProperties.every((prop) => isEqual(prop.rotation, first.rotation));
+      const allSameX = positionProperties.every((prop) => floatEqual(prop.x, first.x));
+      const allSameY = positionProperties.every((prop) => floatEqual(prop.y, first.y));
+      const allSameRotation = positionProperties.every((prop) => floatEqual(prop.rotation, first.rotation));
 
       if (allSameX) {
         this.x = first.x;

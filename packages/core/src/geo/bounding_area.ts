@@ -1,3 +1,4 @@
+import { applyToPoints, type Matrix } from 'transformation-matrix';
 import type { IWondPoint, IBoundingArea } from '../interfaces';
 
 export class WondBoundingArea implements IBoundingArea {
@@ -62,5 +63,20 @@ export class WondBoundingArea implements IBoundingArea {
 
   getCenter() {
     return { x: (this.left + this.right) / 2, y: (this.top + this.bottom) / 2 };
+  }
+
+  transform(matrix: Matrix) {
+    const [NW, NE, SW, SE] = applyToPoints(matrix, [
+      { x: this.left, y: this.top },
+      { x: this.right, y: this.top },
+      { x: this.left, y: this.bottom },
+      { x: this.right, y: this.bottom },
+    ]);
+    return new WondBoundingArea(
+      Math.min(NW.x, NE.x, SW.x, SE.x),
+      Math.max(NW.x, NE.x, SW.x, SE.x),
+      Math.min(NW.y, NE.y, SW.y, SE.y),
+      Math.max(NW.y, NE.y, SW.y, SE.y),
+    );
   }
 }
