@@ -22,10 +22,14 @@ export class ToolDrawRect extends ToolBase {
   };
 
   onStart = (event: IMouseEvent, internalAPI: IInternalAPI) => {
-    this.startPoint = screenCoordsToSceneCoords(
+    const startScenePoint = screenCoordsToSceneCoords(
       { x: event.clientX, y: event.clientY },
       internalAPI.getCoordinateManager().getViewSpaceMeta(),
     );
+    this.startPoint = {
+      x: Math.round(startScenePoint.x),
+      y: Math.round(startScenePoint.y),
+    };
   };
 
   private getTargetRectProperty(
@@ -95,7 +99,6 @@ export class ToolDrawRect extends ToolBase {
         name: `Rectangle ${ToolDrawRect.getNewKey()}`,
         visible: true,
         locked: false,
-        isAspectRatioLocked: false,
         ...newProperty,
       });
 

@@ -193,7 +193,7 @@ export class ToolMove extends ToolBase {
           if (startAttrs) {
             let newTransform = compose([addedTransform, startAttrs.transform]);
 
-            if (graphics.attrs.isAspectRatioLocked && startAttrs.anchors.length < 2) {
+            if (!!graphics.attrs.targetAspectRatio && startAttrs.anchors.length < 2) {
               const oldBoundingArea = generateBoundingArea(startAttrs.size, startAttrs.transform);
               const currentBoundingArea = generateBoundingArea(startAttrs.size, newTransform);
               const currentScale = {
@@ -239,22 +239,33 @@ export class ToolMove extends ToolBase {
                   (scaleAnchor.y - limitBoundingArea.bottom) / (scaleAnchor.y - currentBoundingArea.bottom),
                 );
               }
-
               maxScaleY = Math.min(maxScaleY, maxScaleLimit / currentScale.y);
+
+              const aspectRatioBoundingArea = generateBoundingArea(
+                graphics.attrs.targetAspectRatio,
+                startAttrs.transform,
+              );
+              const sceneSpaceAspectRatio = aspectRatioBoundingArea.getWidth() / aspectRatioBoundingArea.getHeight();
 
               let addedScale = {
                 x: 1,
                 y: 1,
               };
 
-              if ((maxScaleX * currentScale.x) / currentScale.y <= maxScaleY) {
+              let xBoundRelativeYScale =
+                (maxScaleX * currentScale.x * oldBoundingArea.getWidth()) /
+                (currentScale.y * oldBoundingArea.getHeight() * sceneSpaceAspectRatio);
+
+              if (xBoundRelativeYScale <= maxScaleY) {
                 addedScale = {
                   x: maxScaleX,
-                  y: (maxScaleX * currentScale.x) / currentScale.y,
+                  y: xBoundRelativeYScale,
                 };
               } else {
                 addedScale = {
-                  x: (maxScaleY * currentScale.y) / currentScale.x,
+                  x:
+                    (maxScaleY * currentScale.y * oldBoundingArea.getHeight() * sceneSpaceAspectRatio) /
+                    (currentScale.x * oldBoundingArea.getWidth()),
                   y: maxScaleY,
                 };
               }

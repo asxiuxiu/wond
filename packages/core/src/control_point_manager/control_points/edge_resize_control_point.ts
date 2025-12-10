@@ -13,7 +13,7 @@ import { applyToPoint, compose, inverse, scale, translate, type Matrix } from 't
 export class EdgeResizeControlPoint extends ControlPointBase {
   visible: boolean = false;
 
-  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size' | 'isAspectRatioLocked'> | null = null;
+  private originAttrs: (Pick<IGraphicsAttrs, 'transform' | 'size'> & { isAspectRatioLocked: boolean }) | null = null;
 
   protected getAnchorScenePos() {
     return { x: -1, y: -1 };

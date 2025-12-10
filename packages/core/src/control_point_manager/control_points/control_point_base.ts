@@ -60,7 +60,7 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
     return this._cachePath;
   }
 
-  protected getRefGraphicsAttrs(): Pick<T, 'transform' | 'size' | 'isAspectRatioLocked'> {
+  protected getRefGraphicsAttrs(): Pick<T, 'transform' | 'size'> & { isAspectRatioLocked: boolean } {
     if (this.refGraphics.length === 0) {
       return {
         size: { x: 0, y: 0 },
@@ -72,7 +72,7 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
       return {
         size: { ...graphics.attrs.size },
         transform: { ...graphics.attrs.transform },
-        isAspectRatioLocked: graphics.attrs.isAspectRatioLocked,
+        isAspectRatioLocked: !!graphics.attrs.targetAspectRatio,
       };
     } else {
       let accBoundingArea: IBoundingArea | null = getGraphicsBoundingArea(this.refGraphics);
@@ -90,7 +90,7 @@ export class ControlPointBase<T extends IGraphicsAttrs = IGraphicsAttrs> impleme
       let isAspectRatioLocked = false;
       for (const graphics of this.refGraphics) {
         const anchors = getAnchorsBetweenChildAndParentBoundingArea(graphics.getBoundingArea(), accBoundingArea);
-        if (anchors.length === 2) {
+        if (anchors.length >= 2 && !!graphics.attrs.targetAspectRatio) {
           isAspectRatioLocked = true;
           break;
         }

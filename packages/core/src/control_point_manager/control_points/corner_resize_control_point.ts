@@ -25,7 +25,7 @@ export class CornerResizeControlPoint extends ControlPointBase {
   shape: WondControlPointShape = 'rect';
   visible: boolean = true;
 
-  private originAttrs: Pick<IGraphicsAttrs, 'transform' | 'size' | 'isAspectRatioLocked'> | null = null;
+  private originAttrs: (Pick<IGraphicsAttrs, 'transform' | 'size'> & { isAspectRatioLocked: boolean }) | null = null;
 
   private getNormalizedPos() {
     return getCornerControlPointNormalizedPos(this.type);

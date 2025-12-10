@@ -469,7 +469,7 @@ export class WondSceneGraph implements ISceneGraph {
       if (
         this.selectionDraggingState !== null &&
         this.selectionDraggingState.type === 'resize' &&
-        (this.selectionDraggingState.shiftKey || selectedNode.attrs.isAspectRatioLocked)
+        (this.selectionDraggingState.shiftKey || !!selectedNode.attrs.targetAspectRatio)
       ) {
         const aspectRatioLockedPath = new canvaskit.Path();
         const [startPoint, endPoint] = applyToPoints(selectedNode.attrs.transform, [
@@ -517,7 +517,7 @@ export class WondSceneGraph implements ISceneGraph {
           aspectRatioLockedPath.lineTo(targetSelectionArea.right, targetSelectionArea.bottom);
         } else {
           for (const graphic of selectedNodes) {
-            if (graphic.attrs.isAspectRatioLocked) {
+            if (!!graphic.attrs.targetAspectRatio) {
               const [startPoint, endPoint] = applyToPoints(graphic.attrs.transform, [
                 { x: 0, y: 0 },
                 { x: graphic.attrs.size.x, y: graphic.attrs.size.y },

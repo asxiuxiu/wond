@@ -54,7 +54,7 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
         x: width,
         y: graphic.attrs.size.y,
       };
-      if (graphic.attrs.isAspectRatioLocked) {
+      if (!!graphic.attrs.targetAspectRatio) {
         newSize.y = graphic.attrs.size.y * (width / graphic.attrs.size.x);
       }
 
@@ -71,7 +71,7 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
         x: graphic.attrs.size.x,
         y: height,
       };
-      if (graphic.attrs.isAspectRatioLocked) {
+      if (!!graphic.attrs.targetAspectRatio) {
         newSize.x = graphic.attrs.size.x * (height / graphic.attrs.size.y);
       }
 
@@ -82,12 +82,13 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
   }
 
   setIsAspectRatioLocked(isAspectRatioLocked: boolean): void {
-    console.log('setIsAspectRatioLocked', isAspectRatioLocked);
     if (this.refGraphics.length === 0) return;
     for (const graphic of this.refGraphics) {
-      if (graphic.attrs.isAspectRatioLocked === isAspectRatioLocked) continue;
+      if (!!graphic.attrs.targetAspectRatio === isAspectRatioLocked) continue;
       this.getCommand(this.internalAPI).addOperations([
-        new WondUpdatePropertyOperation(graphic, { isAspectRatioLocked }),
+        new WondUpdatePropertyOperation(graphic, {
+          targetAspectRatio: isAspectRatioLocked ? { x: graphic.attrs.size.x, y: graphic.attrs.size.y } : undefined,
+        }),
       ]);
     }
     this.getCommand(this.internalAPI).complete();
@@ -96,7 +97,7 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
 
   public onNodePropertyChange<ATTRS extends IGraphicsAttrs>(nodeId: string, newProperty: Partial<ATTRS>): void {
     if (this.refGraphics.some((g) => g.attrs.id === nodeId)) {
-      if ('size' in newProperty || 'isAspectRatioLocked' in newProperty) {
+      if ('size' in newProperty || 'targetAspectRatio' in newProperty) {
         this.calculateProperty();
       }
     }
@@ -107,12 +108,12 @@ export class LayoutSetter implements ILayoutSetter, ISetterInternal {
       const graphic = this.refGraphics[0];
       this.width = graphic.attrs.size.x;
       this.height = graphic.attrs.size.y;
-      this.isAspectRatioLocked = graphic.attrs.isAspectRatioLocked;
+      this.isAspectRatioLocked = !!graphic.attrs.targetAspectRatio;
     } else if (this.refGraphics.length > 1) {
       const properties = this.refGraphics.map((g) => ({
         width: g.attrs.size.x,
         height: g.attrs.size.y,
-        isAspectRatioLocked: g.attrs.isAspectRatioLocked,
+        isAspectRatioLocked: !!g.attrs.targetAspectRatio,
       }));
       const first = properties[0];
       const allSameWidth = properties.every((prop) => floatEqual(prop.width, first.width));

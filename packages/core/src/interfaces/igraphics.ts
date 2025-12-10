@@ -13,15 +13,20 @@ export const GraphicsType = {
 
 export type GraphicsType = (typeof GraphicsType)[keyof typeof GraphicsType];
 
+export interface AspectRatioValue {
+  x: number;
+  y: number;
+}
+
 export interface IGraphicsAttrs {
   readonly id: string;
   type: GraphicsType;
   name: string;
+  size: { x: number; y: number };
   transform: Matrix;
   visible: boolean;
   locked: boolean;
-  isAspectRatioLocked: boolean;
-  size: { x: number; y: number };
+  targetAspectRatio?: AspectRatioValue;
   children?: IGraphics[];
 }
 
