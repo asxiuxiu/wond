@@ -40,5 +40,6 @@ export interface IWondControlPoint<T extends IGraphicsAttrs> {
 
 export interface IControlPointManager {
   getControlPoints(): IWondControlPoint<IGraphicsAttrs>[];
+  onNodePropertyChange<ATTRS extends IGraphicsAttrs>(nodeId: string, newProperty: Partial<ATTRS>): void;
   clear(): void;
 }

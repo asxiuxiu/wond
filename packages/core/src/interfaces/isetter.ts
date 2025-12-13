@@ -26,7 +26,6 @@ type PropertyAccessors<T> = {
 };
 
 // position setter
-
 export interface IPositionProperty {
   x: number;
   y: number;
@@ -39,6 +38,7 @@ export interface IPositionSetter extends ISetter, PropertyAccessors<IPositionPro
   flipVertical(): void;
 }
 
+// Layout setter
 export interface ILayoutProperty {
   width: number;
   height: number;
@@ -46,3 +46,11 @@ export interface ILayoutProperty {
 }
 
 export interface ILayoutSetter extends ISetter, PropertyAccessors<ILayoutProperty> {}
+
+// Appearance setter
+export interface IAppearanceProperty {
+  visible: boolean;
+  opacity: number;
+}
+
+export interface IAppearanceSetter extends ISetter, PropertyAccessors<IAppearanceProperty> {}

@@ -43,15 +43,17 @@ export const InputPropertyAccessor = ({
   return (
     <div className="wond-input-property-accessor" style={style}>
       <div className="accessor-prefix">{prefix}</div>
-      <input
-        className="accessor-input"
-        type="text"
-        value={inputValue}
-        onFocus={(e) => e.target.select()}
-        onChange={handleChange}
-        onBlur={submitValue}
-        onKeyDown={handleKeyDown}
-      />
+      <div className="accessor-input-container">
+        <input
+          className="accessor-input"
+          type="text"
+          value={inputValue}
+          onFocus={(e) => e.target.select()}
+          onChange={handleChange}
+          onBlur={submitValue}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
     </div>
   );
 };

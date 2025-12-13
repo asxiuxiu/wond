@@ -14,6 +14,8 @@ import { getCanvasKitContext } from '../context';
 import type { BBox } from 'rbush';
 import type { Path } from 'canvaskit-wasm';
 import { CornerResizeControlPoint, CornerRotateControlPoint, EdgeResizeControlPoint } from '../control_point_manager';
+import { scenePathToPaintPath } from '../utils';
+import { DEFAULT_FILL_COLOR } from '../constants';
 
 export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements BBox, IGraphics<T> {
   get minX(): number {
@@ -41,8 +43,17 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
 
   parentId?: string;
 
-  constructor(attrs: Omit<T, 'id' | 'type'>) {
-    this._attrs = { ...attrs, id: getUuid(), type: this.type } as T;
+  constructor(attrs: Partial<Omit<T, 'id' | 'type'>>) {
+    this._attrs = {
+      type: this.type,
+      size: { x: 0, y: 0 },
+      transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      visible: true,
+      locked: false,
+      opacity: 1,
+      ...attrs,
+      id: getUuid(),
+    } as T;
     const { canvaskit } = getCanvasKitContext();
     this._scenePath = new canvaskit.Path();
     this.generateScenePath();
@@ -56,7 +67,7 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
 
   set attrs(newAttrs: T) {
     const willUpdateScenePath = this.willUpdateScenePath(newAttrs);
-    this._attrs = { ...this._attrs, ...newAttrs };
+    this._attrs = newAttrs;
     if (willUpdateScenePath) {
       this.generateScenePath();
       this.generateBoundingArea();
@@ -82,6 +93,9 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
 
   public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     // create or update the resize control points.
+    if (this.attrs.locked) {
+      return [];
+    }
 
     if (!this._controlPointsCache[WondControlPointType.NW_Rotate]) {
       this._controlPointsCache[WondControlPointType.NW_Rotate] = new CornerRotateControlPoint(
@@ -258,7 +272,50 @@ export class WondGraphics<T extends IGraphicsAttrs = IGraphicsAttrs> implements 
     return this._svgString;
   }
 
-  public draw(context: WondGraphicDrawingContext): void {}
+  public draw(context: WondGraphicDrawingContext): void {
+    const { canvas, cachePaintCollection } = context;
+    const { canvaskit } = getCanvasKitContext();
 
-  public drawOutline(context: WondGraphicDrawingContext, type: 'selection' | 'hover' = 'selection'): void {}
+    const cacheAlphaLayerPaint = cachePaintCollection.get('alphaLayerPaint');
+    if (!cacheAlphaLayerPaint) {
+      return;
+    }
+
+    const paint = new canvaskit.Paint();
+    paint.setColor(
+      canvaskit.Color(DEFAULT_FILL_COLOR.r, DEFAULT_FILL_COLOR.g, DEFAULT_FILL_COLOR.b, DEFAULT_FILL_COLOR.a),
+    );
+    paint.setStyle(canvaskit.PaintStyle.Fill);
+    paint.setAntiAlias(true);
+
+    const path = scenePathToPaintPath(this._scenePath.copy(), context.viewSpaceMeta);
+
+    if (this.attrs.opacity < 1) {
+      cacheAlphaLayerPaint.setAlphaf(this.attrs.opacity);
+      canvas.saveLayer(cacheAlphaLayerPaint);
+    }
+
+    canvas.drawPath(path, paint);
+
+    if (this.attrs.opacity < 1) {
+      canvas.restore();
+    }
+  }
+
+  public drawOutline(context: WondGraphicDrawingContext, type: 'selection' | 'hover' = 'selection') {
+    const { canvas, cachePaintCollection } = context;
+    const overlayStrokePaint = cachePaintCollection.get('overlayStrokePaint');
+    if (!overlayStrokePaint) {
+      return;
+    }
+
+    if (type === 'hover') {
+      overlayStrokePaint.setStrokeWidth(2);
+    } else if (type === 'selection') {
+      overlayStrokePaint.setStrokeWidth(1);
+    }
+
+    const path = scenePathToPaintPath(this._scenePath.copy(), context.viewSpaceMeta);
+    canvas.drawPath(path, overlayStrokePaint);
+  }
 }

@@ -10,17 +10,14 @@ export interface WondDocumentAttrs extends IGraphicsAttrs {
 
 export class WondDocument extends WondGraphics<WondDocumentAttrs> {
   constructor(attrs: Partial<Omit<WondDocumentAttrs, 'id' | 'type'>>) {
-    super({
-      locked: false,
-      visible: true,
-      name: 'rootPage',
-      transform: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+    super(attrs);
+    this._attrs.type = this.type;
+    this._attrs = {
+      ...this._attrs,
       backgroundColor: { r: 255, g: 255, b: 255, a: 1 },
       children: [],
-      size: { x: -1, y: -1 },
-      ...attrs,
-    });
-    this._attrs.type = this.type;
+      name: 'rootPage',
+    };
   }
 
   markScenePathDirty(newAttrs: Partial<WondDocumentAttrs>): boolean {

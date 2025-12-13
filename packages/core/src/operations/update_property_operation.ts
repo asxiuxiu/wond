@@ -4,13 +4,17 @@ import { WondOperation } from './operation_base';
 export class WondUpdatePropertyOperation<ATTRS extends IGraphicsAttrs> extends WondOperation {
   targetNodeId: string;
   newProperty: Partial<ATTRS>;
-  oldProperty: ATTRS;
+  oldProperty: Partial<ATTRS>;
 
   constructor(targetNode: IGraphics<ATTRS>, newProperty: Partial<ATTRS>) {
     super();
     this.targetNodeId = targetNode.attrs.id;
     this.newProperty = newProperty;
-    this.oldProperty = { ...targetNode.attrs };
+    this.oldProperty = {};
+    for (const key in newProperty) {
+      this.oldProperty[key] = targetNode.attrs[key];
+    }
+
   }
 
   execute = (sceneGraph: ISceneGraph): void => {

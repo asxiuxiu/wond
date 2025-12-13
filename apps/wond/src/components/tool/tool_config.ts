@@ -1,7 +1,7 @@
 import { WondToolType } from '@wond/core';
-import MoveToolIcon from './icons/move.svg?react';
-import RectangleToolIcon from './icons/rect.svg?react';
-import HandToolIcon from './icons/hand.svg?react';
+import MoveToolIcon from '@/assets/icons/move.svg?react';
+import RectangleToolIcon from '@/assets/icons/rect.svg?react';
+import HandToolIcon from '@/assets/icons/hand.svg?react';
 
 export interface ToolConfig {
   name: string;

@@ -97,8 +97,6 @@ export class ToolDrawRect extends ToolBase {
     if (!this.drawingNode) {
       this.drawingNode = new WondRect({
         name: `Rectangle ${ToolDrawRect.getNewKey()}`,
-        visible: true,
-        locked: false,
         ...newProperty,
       });
 

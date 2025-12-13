@@ -21,6 +21,8 @@ export interface IEditor {
   getActiveToolType(): WondToolType;
   setActiveToolType(toolType: WondToolType): void;
   setSelections(nodeIds: string[]): void;
+  setNodeLocked(nodeId: string, locked: boolean): void;
+  setNodeVisibility(nodeId: string, visible: boolean): void;
   toggleSelection(nodeId: string): void;
   setHoverNode(nodeId: string | null): void;
   getZoom(): number;

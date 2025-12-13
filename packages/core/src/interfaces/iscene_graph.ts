@@ -12,7 +12,7 @@ export interface ISceneGraph {
   getRootNode(): IGraphics;
   isNodeSelected(nodeId: string): boolean;
   getSelectionsCopy(): Set<string>;
-  isSelectionContainsPoint(scenePoint: IWondPoint): boolean;
+  canPickSelection(scenePoint: IWondPoint): boolean;
   setSelectionDraggingState(state: ISelectionDraggingState | null): void;
   setSelectionRange(range: BBox | null): void;
   setHoverNode(nodeId: string | null): void;

@@ -15,7 +15,7 @@ import { WondSceneGraph } from './scene_graph';
 import { WondToolManager } from './tools';
 import { WondToolType } from './interfaces';
 import { EventEmitter } from '@wond/common';
-import { WondUpdateSelectionOperation } from './operations';
+import { WondUpdatePropertyOperation, WondUpdateSelectionOperation } from './operations';
 import { WondKeybindingManager } from './keybinding_manager';
 import { WondCursorManager } from './cursor_manager';
 import { WondControlPointManager } from './control_point_manager';
@@ -183,6 +183,26 @@ export class WondEditor implements IEditor {
 
   public getSetterCollection(): ISetterCollection | null {
     return this.#setterManager.getSetterCollection();
+  }
+
+  public setNodeLocked(nodeId: string, locked: boolean): void {
+    const node = this.#sceneGraph.getNodeById(nodeId);
+    if (!node) return;
+    if (node.attrs.locked == locked) return;
+    const command = this.#commandManager.createCommand();
+    this.#commandManager.executeCommand(command);
+    command.addOperations([new WondUpdatePropertyOperation(node, { locked })]);
+    command.complete();
+  }
+
+  public setNodeVisibility(nodeId: string, visible: boolean): void {
+    const node = this.#sceneGraph.getNodeById(nodeId);
+    if (!node) return;
+    if (node.attrs.visible == visible) return;
+    const command = this.#commandManager.createCommand();
+    this.#commandManager.executeCommand(command);
+    command.addOperations([new WondUpdatePropertyOperation(node, { visible })]);
+    command.complete();
   }
 
   public getZoom(): number {

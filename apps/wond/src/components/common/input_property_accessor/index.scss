@@ -25,8 +25,16 @@
     user-select: none;
   }
 
-  .accessor-input {
+  .accessor-input-container {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .accessor-input {
+    width: 100%;
     outline: none;
     outline-offset: -1px;
     background-color: transparent;

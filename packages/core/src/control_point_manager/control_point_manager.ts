@@ -18,18 +18,17 @@ export class WondControlPointManager implements IControlPointManager {
     this.internalAPI.on('onSelectionChange', this.refreshControlPoints);
   }
 
-  private refreshControlPoints = (selectedNodeSet: Set<string>) => {
-    if (this.controlPointSource.length === 1) {
-      this.controlPointSource[0].clearControlPoints();
-    }
-    this.controlPointSource = Array.from(selectedNodeSet)
-      .map((id) => this.internalAPI.getSceneGraph().getNodeById(id))
-      .filter((node) => node !== undefined);
+  private refreshControlPointsBySource() {
     if (this.controlPointSource.length === 0) {
       this.controlPoints = [];
     } else if (this.controlPointSource.length === 1) {
       this.controlPoints = this.controlPointSource[0].getControlPoints();
     } else if (this.controlPointSource.length > 1) {
+      if (this.controlPointSource.every((node) => node.attrs.locked)) {
+        this.controlPoints = [];
+        return;
+      }
+
       // calculate the the control points by bounding area.
       const NW_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.NW_Rotate);
       const NE_Rotate_CP = new CornerRotateControlPoint([...this.controlPointSource], WondControlPointType.NE_Rotate);
@@ -61,6 +60,16 @@ export class WondControlPointManager implements IControlPointManager {
         SE_Resize_CP,
       ];
     }
+  }
+
+  private refreshControlPoints = (selectedNodeSet: Set<string>) => {
+    if (this.controlPointSource.length === 1) {
+      this.controlPointSource[0].clearControlPoints();
+    }
+    this.controlPointSource = Array.from(selectedNodeSet)
+      .map((id) => this.internalAPI.getSceneGraph().getNodeById(id))
+      .filter((node) => node !== undefined);
+    this.refreshControlPointsBySource();
   };
 
   clear() {
@@ -69,5 +78,14 @@ export class WondControlPointManager implements IControlPointManager {
 
   public getControlPoints(): IWondControlPoint<IGraphicsAttrs>[] {
     return this.controlPoints;
+  }
+
+  public onNodePropertyChange<ATTRS extends IGraphicsAttrs>(nodeId: string, newProperty: Partial<ATTRS>): void {
+    if (
+      this.controlPointSource.some((node) => node.attrs.id === nodeId) &&
+      ('visible' in newProperty || 'locked' in newProperty)
+    ) {
+      this.refreshControlPointsBySource();
+    }
   }
 }

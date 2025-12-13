@@ -2,9 +2,9 @@ import './index.scss';
 import { InputPropertyAccessor, SetterButton, SetterFieldSet, SetterHeader } from '@/components/common';
 import type { IPositionSetter } from '@wond/core';
 import { useEffect, useState } from 'react';
-import Rotate90RightIcon from './rotate_90_right.svg?react';
-import FlipHorizontalIcon from './flip_horizontal.svg?react';
-import FlipVerticalIcon from './flip_vertical.svg?react';
+import Rotate90RightIcon from '@/assets/icons/rotate_90_right.svg?react';
+import FlipHorizontalIcon from '@/assets/icons/flip_horizontal.svg?react';
+import FlipVerticalIcon from '@/assets/icons/flip_vertical.svg?react';
 import { setterNumberPipe } from '@/utils';
 
 export interface IPositionSetterProps {
@@ -31,46 +31,48 @@ export const PositionSetter = ({ setter }: IPositionSetterProps) => {
   return (
     <div className="wond-position-setter">
       <SetterHeader title={setter.title} />
-      <SetterFieldSet title={'Position'}>
-        <>
-          <InputPropertyAccessor
-            style={{ gridArea: 'input1' }}
-            prefix="X"
-            value={x}
-            onValueChange={(value) => setter.setX(+value)}
-          />
-          <InputPropertyAccessor
-            style={{ gridArea: 'input2' }}
-            prefix="Y"
-            value={y}
-            onValueChange={(value) => setter.setY(+value)}
-          />
-        </>
-      </SetterFieldSet>
-      <SetterFieldSet title={'Rotation'}>
-        <>
-          <InputPropertyAccessor
-            style={{ gridArea: 'input1' }}
-            prefix="R"
-            value={rotation}
-            valueUnit="°"
-            onValueChange={(value) => setter.setRotation(+value)}
-          />
-          <div className="rotation-buttons" style={{ gridArea: 'input2' }}>
-            <SetterButton
-              style={{ flex: 1, borderTopLeftRadius: 5, borderBottomLeftRadius: 5 }}
-              icon={<Rotate90RightIcon />}
-              onClick={() => setter.rotate90()}
+      <div className="column-gap-2">
+        <SetterFieldSet title={'Position'}>
+          <>
+            <InputPropertyAccessor
+              style={{ gridArea: 'input1' }}
+              prefix="X"
+              value={x}
+              onValueChange={(value) => setter.setX(+value)}
             />
-            <SetterButton style={{ flex: 1 }} icon={<FlipHorizontalIcon />} onClick={() => setter.flipHorizontal()} />
-            <SetterButton
-              style={{ flex: 1, borderTopRightRadius: 5, borderBottomRightRadius: 5 }}
-              icon={<FlipVerticalIcon />}
-              onClick={() => setter.flipVertical()}
+            <InputPropertyAccessor
+              style={{ gridArea: 'input2' }}
+              prefix="Y"
+              value={y}
+              onValueChange={(value) => setter.setY(+value)}
             />
-          </div>
-        </>
-      </SetterFieldSet>
+          </>
+        </SetterFieldSet>
+        <SetterFieldSet title={'Rotation'}>
+          <>
+            <InputPropertyAccessor
+              style={{ gridArea: 'input1' }}
+              prefix="R"
+              value={rotation}
+              valueUnit="°"
+              onValueChange={(value) => setter.setRotation(+value)}
+            />
+            <div className="rotation-buttons" style={{ gridArea: 'input2' }}>
+              <SetterButton
+                style={{ flex: 1, borderTopLeftRadius: 5, borderBottomLeftRadius: 5 }}
+                icon={<Rotate90RightIcon />}
+                onClick={() => setter.rotate90()}
+              />
+              <SetterButton style={{ flex: 1 }} icon={<FlipHorizontalIcon />} onClick={() => setter.flipHorizontal()} />
+              <SetterButton
+                style={{ flex: 1, borderTopRightRadius: 5, borderBottomRightRadius: 5 }}
+                icon={<FlipVerticalIcon />}
+                onClick={() => setter.flipVertical()}
+              />
+            </div>
+          </>
+        </SetterFieldSet>
+      </div>
     </div>
   );
 };

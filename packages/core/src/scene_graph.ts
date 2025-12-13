@@ -117,24 +117,25 @@ export class WondSceneGraph implements ISceneGraph {
     return new Set(this.selectedNodeIds);
   }
 
-  public isSelectionContainsPoint(scenePoint: IWondPoint): boolean {
+  public canPickSelection(scenePoint: IWondPoint): boolean {
     const selectedNodeIds = Array.from(this.selectedNodeIds);
     if (selectedNodeIds.length === 0) {
       return false;
     }
 
     if (selectedNodeIds.length > 1) {
-      const selectionsBoundingArea = getGraphicsBoundingArea(
-        selectedNodeIds.map((nodeId) => this.getNodeById(nodeId)).filter((node) => node != undefined),
-      );
+      const selectedNodes = selectedNodeIds
+        .map((nodeId) => this.getNodeById(nodeId))
+        .filter((node) => node != undefined);
+      if (selectedNodes.every((node) => node.attrs.locked)) return false;
+      const selectionsBoundingArea = getGraphicsBoundingArea(selectedNodes);
       return selectionsBoundingArea != null && selectionsBoundingArea.containsPoint(scenePoint);
     } else {
       const selectedNodeId = selectedNodeIds[0];
       const selectedNode = this.getNodeById(selectedNodeId);
-      if (selectedNode) {
-        return selectedNode.containsPoint(scenePoint);
-      }
-      return false;
+      if (!selectedNode) return false;
+      if (selectedNode.attrs.locked) return false;
+      return selectedNode.containsPoint(scenePoint);
     }
   }
 
@@ -199,7 +200,9 @@ export class WondSceneGraph implements ISceneGraph {
   }
 
   pickNodesAtRange(range: BBox): IGraphics[] {
-    const boundingIntersectedNodes = this.rTree.search(range);
+    const boundingIntersectedNodes = this.rTree
+      .search(range)
+      .filter((node) => !node.attrs.locked && node.attrs.visible);
 
     const { canvaskit } = getCanvasKitContext();
 
@@ -224,7 +227,7 @@ export class WondSceneGraph implements ISceneGraph {
         maxX: point.x,
         maxY: point.y,
       })
-      .filter((node) => node.containsPoint(point));
+      .filter((node) => !node.attrs.locked && node.attrs.visible && node.containsPoint(point));
 
     if (intersectedNodes.length === 0) {
       return null;
@@ -327,25 +330,30 @@ export class WondSceneGraph implements ISceneGraph {
 
     const oldBoundingArea = node.getBoundingArea();
 
-    // Remove from RTree before updating
     this.removeNodeFromRTree(node);
 
-    // Update the node's attributes
-    node.attrs = { ...node.attrs, ...newProperty };
+    const newAttrs: ATTRS = { ...node.attrs };
+    for (const key in newProperty) {
+      if (newProperty[key] === undefined) {
+        delete newAttrs[key];
+      } else {
+        newAttrs[key] = newProperty[key];
+      }
+    }
 
-    // Mark layer tree as dirty
+    node.attrs = newAttrs;
+
     this.throttleMarkLayerTreeDirty();
 
-    // Insert back into RTree with new bounding area
     this.insertNodeIntoRTree(node);
 
-    // Calculate and mark dirty area (union of old and new bounding areas)
     const newBoundingArea = node.getBoundingArea();
     const dirtyArea = oldBoundingArea.union(newBoundingArea);
 
     this.markDirtyArea(dirtyArea);
 
     this.internalAPI.getSetterManager().onNodePropertyChange<ATTRS>(node.attrs.id, newProperty);
+    this.internalAPI.getControlPointManager().onNodePropertyChange<ATTRS>(node.attrs.id, newProperty);
   }
 
   public addNodeByCoordinates(coordinates: number[], newNode: IGraphics): void {
@@ -565,6 +573,10 @@ export class WondSceneGraph implements ISceneGraph {
     }
 
     if (targetEdge === null) {
+      return;
+    }
+
+    if (selectedNodes.length === 1 && selectedNodes[0].attrs.locked) {
       return;
     }
 
@@ -1131,6 +1143,7 @@ export class WondSceneGraph implements ISceneGraph {
 
   private drawContentLayer(context: WondGraphicDrawingContext) {
     for (const child of this.rootNode.attrs.children) {
+      if (!child.attrs.visible) continue;
       child.draw(context);
     }
   }

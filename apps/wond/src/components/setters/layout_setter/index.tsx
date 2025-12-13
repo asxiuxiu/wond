@@ -3,8 +3,8 @@ import { IconButton, InputPropertyAccessor, SetterFieldSet, SetterHeader } from 
 import type { ILayoutSetter } from '@wond/core';
 import { useEffect, useState } from 'react';
 import { setterNumberPipe } from '@/utils';
-import AspectRatioLockedIcon from './aspect_ratio_locked.svg?react';
-import AspectRatioUnlockIcon from './aspect_ratio_unlock.svg?react';
+import AspectRatioLockedIcon from '@/assets/icons/aspect_ratio_locked.svg?react';
+import AspectRatioUnlockIcon from '@/assets/icons/aspect_ratio_unlock.svg?react';
 
 export interface ILayoutSetterProps {
   setter: ILayoutSetter;
@@ -30,7 +30,7 @@ export const LayoutSetter = ({ setter }: ILayoutSetterProps) => {
   return (
     <div className="wond-layout-setter">
       <SetterHeader title={setter.title} />
-      <SetterFieldSet title={'Layout'}>
+      <SetterFieldSet title={'Dimensions'}>
         <>
           <InputPropertyAccessor
             style={{ gridArea: 'input1' }}

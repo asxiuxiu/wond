@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import type { ISetterCollection, ISetter, SetterType } from '@wond/core';
 import { PositionSetter } from '../position_setter';
 import { LayoutSetter } from '../layout_setter';
+import { AppearanceSetter } from '../appearance_setter';
 
 const SETTER_COMPONENT_MAP: Record<SetterType, React.ComponentType<{ setter: ISetter }>> = {
   position: PositionSetter as React.ComponentType<{ setter: ISetter }>,
   layout: LayoutSetter as React.ComponentType<{ setter: ISetter }>,
-  appearance: () => <div>Appearance Setter (TODO)</div>,
+  appearance: AppearanceSetter as React.ComponentType<{ setter: ISetter }>,
   fill: () => <div>Fill Setter (TODO)</div>,
 };
 

@@ -121,7 +121,7 @@ export class ToolMove extends ToolBase {
       return;
     }
 
-    const isPointInSelection = internalAPI.getSceneGraph().isSelectionContainsPoint(this.startPoint);
+    const isPointInSelection = internalAPI.getSceneGraph().canPickSelection(this.startPoint);
     const selectionNode = internalAPI.getSceneGraph().pickNodeAtPoint(this.startPoint);
     if (selectionNode) {
       this.isMovingSelection = true;
@@ -189,6 +189,7 @@ export class ToolMove extends ToolBase {
       if (addedTransform) {
         const newOperations: IOperation[] = [];
         for (const graphics of this.targetControlPoint.refGraphics) {
+          if (graphics.attrs.locked) continue;
           const startAttrs = this.modifyingNodeStartAttrsMap.get(graphics.attrs.id);
           if (startAttrs) {
             let newTransform = compose([addedTransform, startAttrs.transform]);

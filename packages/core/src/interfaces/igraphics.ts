@@ -26,6 +26,7 @@ export interface IGraphicsAttrs {
   transform: Matrix;
   visible: boolean;
   locked: boolean;
+  opacity: number;
   targetAspectRatio?: AspectRatioValue;
   children?: IGraphics[];
 }
